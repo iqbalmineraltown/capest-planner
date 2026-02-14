@@ -6,6 +6,7 @@ import { getCurrentQuarterId } from '~/utils/dateUtils'
 
 /**
  * Seed default placeholder data for demo purposes
+ * One Piece themed - Straw Hat Pirates!
  */
 export function useSeedData() {
   const membersStore = useMembersStore()
@@ -27,14 +28,17 @@ export function useSeedData() {
       quartersStore.addQuarter(new Date().getFullYear(), Math.floor(new Date().getMonth() / 3) + 1)
     }
 
-    // Seed default members
+    // Seed Straw Hat Pirates crew members
     const defaultMembers = [
-      { name: 'Alice Chen', roles: ['BE', 'FE'], availability: 12 },
-      { name: 'Bob Martinez', roles: ['BE'], availability: 13 },
-      { name: 'Carol Wang', roles: ['FE'], availability: 10 },
-      { name: 'David Kim', roles: ['MOBILE'], availability: 11 },
-      { name: 'Eva Patel', roles: ['QA'], availability: 13 },
-      { name: 'Frank Liu', roles: ['BE', 'QA'], availability: 12 },
+      { name: 'Monkey D. Luffy', roles: ['BE', 'FE'], availability: 12 },      // Captain - versatile
+      { name: 'Roronoa Zoro', roles: ['BE'], availability: 13 },               // Swordsman - strong backend
+      { name: 'Nami', roles: ['FE'], availability: 10 },                       // Navigator - visualization
+      { name: 'Usopp', roles: ['MOBILE'], availability: 11 },                  // Sniper - ranged/mobile
+      { name: 'Sanji', roles: ['QA'], availability: 13 },                      // Cook - quality
+      { name: 'Tony Tony Chopper', roles: ['BE', 'QA'], availability: 12 },    // Doctor - backend & quality
+      { name: 'Nico Robin', roles: ['FE'], availability: 11 },                 // Archaeologist - data
+      { name: 'Franky', roles: ['BE'], availability: 13 },                     // Shipwright - builder
+      { name: 'Brook', roles: ['MOBILE'], availability: 10 },                  // Musician - communication
     ]
 
     const createdMembers: string[] = []
@@ -43,56 +47,73 @@ export function useSeedData() {
       createdMembers.push(created.id)
     }
 
-    // Seed default initiatives
+    // Seed pirate-themed initiatives
     const defaultInitiatives = [
       {
-        name: 'API Modernization',
-        description: 'Refactor legacy API endpoints to use new architecture',
+        name: 'Grand Line Navigation System',
+        description: 'Build a real-time navigation system for traversing the Grand Line safely',
         quarter: currentQuarterId,
         roleRequirements: [
           { role: 'BE', effort: 8 },
+          { role: 'FE', effort: 6 },
           { role: 'QA', effort: 4 },
         ],
         assignments: [
           { memberId: createdMembers[1], role: 'BE', weeksAllocated: 8, startWeek: 1, isParallel: false },
+          { memberId: createdMembers[2], role: 'FE', weeksAllocated: 6, startWeek: 1, isParallel: true },
           { memberId: createdMembers[4], role: 'QA', weeksAllocated: 4, startWeek: 5, isParallel: false },
         ],
       },
       {
-        name: 'Mobile App v2.0',
-        description: 'Major update to mobile application with new features',
+        name: 'Thousand Sunny Upgrade',
+        description: 'Major upgrade to the ship\'s systems including Coup de Burst optimization',
         quarter: currentQuarterId,
         roleRequirements: [
-          { role: 'MOBILE', effort: 10 },
-          { role: 'BE', effort: 4 },
+          { role: 'BE', effort: 10 },
+          { role: 'MOBILE', effort: 4 },
           { role: 'QA', effort: 3 },
         ],
         assignments: [
-          { memberId: createdMembers[3], role: 'MOBILE', weeksAllocated: 10, startWeek: 1, isParallel: false },
-          { memberId: createdMembers[0], role: 'BE', weeksAllocated: 4, startWeek: 1, isParallel: true },
+          { memberId: createdMembers[7], role: 'BE', weeksAllocated: 10, startWeek: 1, isParallel: false },
+          { memberId: createdMembers[3], role: 'MOBILE', weeksAllocated: 4, startWeek: 1, isParallel: true },
         ],
       },
       {
-        name: 'Dashboard Redesign',
-        description: 'Update dashboard UI with new design system',
+        name: 'Treasure Map Digitization',
+        description: 'Convert ancient treasure maps to digital format with AI analysis',
         quarter: currentQuarterId,
         roleRequirements: [
           { role: 'FE', effort: 6 },
+          { role: 'BE', effort: 4 },
           { role: 'QA', effort: 2 },
         ],
         assignments: [
-          { memberId: createdMembers[2], role: 'FE', weeksAllocated: 6, startWeek: 1, isParallel: false },
+          { memberId: createdMembers[6], role: 'FE', weeksAllocated: 6, startWeek: 1, isParallel: false },
+          { memberId: createdMembers[5], role: 'BE', weeksAllocated: 4, startWeek: 2, isParallel: false },
         ],
       },
       {
-        name: 'Performance Optimization',
-        description: 'Optimize database queries and caching strategy',
+        name: 'Devil Fruit Database',
+        description: 'Comprehensive database of all known Devil Fruits and their abilities',
         quarter: currentQuarterId,
         roleRequirements: [
           { role: 'BE', effort: 5 },
+          { role: 'FE', effort: 3 },
         ],
         assignments: [
-          { memberId: createdMembers[5], role: 'BE', weeksAllocated: 5, startWeek: 3, isParallel: false },
+          { memberId: createdMembers[0], role: 'BE', weeksAllocated: 5, startWeek: 3, isParallel: false },
+        ],
+      },
+      {
+        name: 'Marine Evasion Protocol',
+        description: 'Early warning system for Marine ships and Buster Calls',
+        quarter: currentQuarterId,
+        roleRequirements: [
+          { role: 'MOBILE', effort: 8 },
+          { role: 'QA', effort: 4 },
+        ],
+        assignments: [
+          { memberId: createdMembers[8], role: 'MOBILE', weeksAllocated: 8, startWeek: 1, isParallel: false },
         ],
       },
     ]

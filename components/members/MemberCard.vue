@@ -30,6 +30,7 @@
             size="small"
             variant="text"
             color="primary"
+            data-testid="edit-member-btn"
             @click="$emit('edit', member.id)"
           />
           <v-btn
@@ -37,6 +38,7 @@
             size="small"
             variant="text"
             color="error"
+            data-testid="delete-member-btn"
             @click="$emit('delete', member.id)"
           />
         </div>

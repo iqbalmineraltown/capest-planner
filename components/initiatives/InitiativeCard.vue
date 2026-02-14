@@ -58,6 +58,7 @@
           <v-list density="compact">
             <v-list-item
               prepend-icon="mdi-pencil"
+              data-testid="edit-initiative-btn"
               @click.stop="$emit('edit', initiative.id)"
             >
               <v-list-item-title>Edit</v-list-item-title>
@@ -65,6 +66,7 @@
             <v-list-item
               prepend-icon="mdi-delete-outline"
               class="text-error"
+              data-testid="delete-initiative-btn"
               @click.stop="handleDelete"
             >
               <v-list-item-title>Delete</v-list-item-title>
