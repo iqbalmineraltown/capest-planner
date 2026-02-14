@@ -53,17 +53,6 @@ const cellStyle = computed(() => {
 })
 </script>
 
-<script lang="ts">
-import { computed } from 'vue'
-export default {
-  computed: {
-    cellStyle() {
-      return cellStyle.value
-    }
-  }
-}
-</script>
-
 <style scoped>
 .assignment-cell {
   padding: 4px 8px;

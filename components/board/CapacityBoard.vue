@@ -48,8 +48,22 @@
                   </div>
                 </div>
               </div>
-              <div class="text-caption text-grey mt-1">
-                {{ member.availability - getAllocatedWeeks(member.id) }}w available
+              <div class="capacity-info mt-1">
+                <div class="d-flex justify-space-between align-center">
+                  <span class="text-caption text-medium-emphasis">
+                    {{ member.availability - getAllocatedWeeks(member.id) }}w remaining
+                  </span>
+                  <span class="text-caption font-weight-medium">
+                    {{ getAllocatedWeeks(member.id) }}/{{ member.availability }}w
+                  </span>
+                </div>
+                <v-progress-linear
+                  :model-value="getCapacityPercentage(member.id)"
+                  :color="getCapacityColor(member.id)"
+                  height="4"
+                  rounded
+                  class="mt-1"
+                />
               </div>
             </v-card>
           </v-col>
@@ -184,6 +198,25 @@ function getAllocatedWeeks(memberId: string): number {
   return capacity.allocated
 }
 
+// Get capacity percentage for visual indicator
+function getCapacityPercentage(memberId: string): number {
+  if (!props.quarter) return 0
+  const member = props.members.find((m) => m.id === memberId)
+  if (!member) return 0
+  const capacity = calculateMemberQuarterCapacity(member, initiativesStore.initiatives, props.quarter.id)
+  if (member.availability === 0) return 0
+  return Math.min(100, (capacity.allocated / member.availability) * 100)
+}
+
+// Get color based on capacity usage
+function getCapacityColor(memberId: string): string {
+  const percentage = getCapacityPercentage(memberId)
+  if (percentage >= 100) return 'error'
+  if (percentage >= 80) return 'warning'
+  if (percentage >= 50) return 'success'
+  return 'primary'
+}
+
 // Drag handlers
 function handleDragStart(event: DragEvent, member: TeamMember) {
   draggedMember.value = member
@@ -257,6 +290,14 @@ function getRoleColor(role: string): string {
 
 .member-pool-card:active {
   cursor: grabbing;
+}
+
+.capacity-info {
+  padding: 2px 0;
+}
+
+.capacity-info .v-progress-linear {
+  opacity: 0.7;
 }
 
 .capacity-board {

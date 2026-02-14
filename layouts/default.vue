@@ -16,6 +16,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useSeedData } from '~/composables/useSeedData'
+import AppDrawer from '~/components/common/AppDrawer.vue'
+import AppHeader from '~/components/common/AppHeader.vue'
+import ConfirmDialog from '~/components/common/ConfirmDialog.vue'
 
 const drawer = ref(true)
 const { seedDefaultData } = useSeedData()
