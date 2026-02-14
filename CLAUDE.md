@@ -118,4 +118,4 @@ For complex or multi-file tasks, you are encouraged to spawn subagents or teamma
 - Parallel feature development
 - Code review and exploration tasks
 
-Use the Task tool to spawn specialized agents when appropriate.
+Use the Task tool to spawn specialized agents when appropriate. Subagents/teammates can use the default sonnet model for their tasks.
