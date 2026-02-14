@@ -280,11 +280,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useMembersStore } from '~/stores/members'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import { useRolesStore } from '~/stores/roles'
+import { useSeedData } from '~/composables/useSeedData'
 import { calculateQuarterCapacitySummary } from '~/utils/capacityCalculator'
 import { formatQuarterLabel, getCurrentQuarterId } from '~/utils/dateUtils'
 
@@ -292,6 +293,12 @@ const membersStore = useMembersStore()
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
 const rolesStore = useRolesStore()
+const { seedDefaultData } = useSeedData()
+
+// Auto-seed default data on first load
+onMounted(() => {
+  seedDefaultData()
+})
 
 // Computed stats
 const memberCount = computed(() => membersStore.memberCount)

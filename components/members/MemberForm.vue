@@ -1,89 +1,80 @@
 <template>
   <v-form ref="formRef" @submit.prevent="handleSubmit">
-    <v-card>
-      <v-card-title>
-        <span class="text-h5">{{ isEditing ? 'Edit' : 'Add' }} Team Member</span>
-      </v-card-title>
+    <!-- Name input -->
+    <v-text-field
+      v-model="formData.name"
+      label="Name *"
+      placeholder="Enter member name"
+      :rules="nameRules"
+      variant="outlined"
+      prepend-inner-icon="mdi-account"
+      required
+      class="mb-3"
+    />
 
-      <v-card-text>
-        <!-- Name input -->
-        <v-text-field
-          v-model="formData.name"
-          label="Name *"
-          placeholder="Enter member name"
-          :rules="nameRules"
-          variant="outlined"
-          prepend-inner-icon="mdi-account"
-          required
-          class="mb-2"
-        />
+    <!-- Role selection with chips -->
+    <div class="mb-3">
+      <v-label class="d-block mb-2">Roles *</v-label>
+      <v-combobox
+        v-model="formData.roles"
+        :items="availableRoles"
+        label="Select or type roles"
+        placeholder="Choose roles..."
+        :rules="roleRules"
+        chips
+        multiple
+        closable-chips
+        variant="outlined"
+        prepend-inner-icon="mdi-badge-account"
+      >
+        <template #chip="{ props: chipProps, item }">
+          <v-chip
+            v-bind="chipProps"
+            :color="getRoleColor(item.raw)"
+            label
+          />
+        </template>
+      </v-combobox>
+      <div class="text-caption text-grey-darken-1 mt-1">
+        Select from existing roles or type a custom role name
+      </div>
+    </div>
 
-        <!-- Role selection with chips -->
-        <div class="mb-4">
-          <v-label class="d-block mb-2">Roles *</v-label>
-          <v-combobox
-            v-model="formData.roles"
-            :items="availableRoles"
-            label="Select or type roles"
-            placeholder="Choose roles..."
-            :rules="roleRules"
-            chips
-            multiple
-            closable-chips
-            variant="outlined"
-            prepend-inner-icon="mdi-badge-account"
-          >
-            <template #chip="{ props: chipProps, item }">
-              <v-chip
-                v-bind="chipProps"
-                :color="getRoleColor(item.raw)"
-                label
-              />
-            </template>
-          </v-combobox>
-          <div class="text-caption text-grey-darken-1 mt-1">
-            Select from existing roles or type a custom role name
-          </div>
-        </div>
+    <!-- Availability input -->
+    <v-text-field
+      v-model.number="formData.availability"
+      label="Availability (manweeks) *"
+      type="number"
+      min="1"
+      max="13"
+      placeholder="1-13"
+      :rules="availabilityRules"
+      variant="outlined"
+      prepend-inner-icon="mdi-clock-outline"
+      required
+      hint="Number of manweeks available per quarter (1-13)"
+      persistent-hint
+      class="mb-4"
+    />
 
-        <!-- Availability input -->
-        <v-text-field
-          v-model.number="formData.availability"
-          label="Availability (manweeks) *"
-          type="number"
-          min="1"
-          max="13"
-          placeholder="1-13"
-          :rules="availabilityRules"
-          variant="outlined"
-          prepend-inner-icon="mdi-clock-outline"
-          required
-          hint="Number of manweeks available per quarter (1-13)"
-          persistent-hint
-        />
-      </v-card-text>
-
-      </v-card>
-
-      <v-card-actions>
-        <v-spacer />
-        <v-btn
-          variant="text"
-          color="grey-darken-1"
-          @click="$emit('cancel')"
-        >
-          Cancel
-        </v-btn>
-        <v-btn
-          type="submit"
-          color="primary"
-          variant="elevated"
-          :loading="submitting"
-        >
-          {{ isEditing ? 'Save Changes' : 'Add Member' }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
+    <!-- Actions -->
+    <div class="d-flex justify-end ga-2">
+      <v-btn
+        variant="text"
+        color="grey-darken-1"
+        @click="$emit('cancel')"
+      >
+        Cancel
+      </v-btn>
+      <v-btn
+        type="submit"
+        color="primary"
+        variant="elevated"
+        :loading="submitting"
+      >
+        {{ isEditing ? 'Save Changes' : 'Add Member' }}
+      </v-btn>
+    </div>
   </v-form>
 </template>
 
@@ -92,7 +83,6 @@ import { ref, computed, watch } from 'vue'
 import type { TeamMember } from '~/types'
 import { useRolesStore } from '~/stores/roles'
 import { useMembersStore } from '~/stores/members'
-import { getInitials } from '~/utils/colorUtils'
 
 interface Props {
   memberId?: string | null
@@ -125,7 +115,7 @@ const formData = ref<{
 }>({
   name: '',
   roles: [],
-  availability: 1,
+  availability: 10,
 })
 
 // Load member data for editing
@@ -165,10 +155,10 @@ function getRoleColor(role: string): string {
   const roleColors: Record<string, string> = {
     BE: 'blue',
     FE: 'green',
-    MOBILE: 'purple',
-    QA: 'orange',
+    MOBILE: 'orange',
+    QA: 'purple',
   }
-  return roleColors[role] || 'grey'
+  return roleColors[role.toUpperCase()] || 'grey'
 }
 
 // Reset form
@@ -176,7 +166,7 @@ function resetForm() {
   formData.value = {
     name: '',
     roles: [],
-    availability: 1,
+    availability: 10,
   }
   formRef.value?.resetValidation()
 }
