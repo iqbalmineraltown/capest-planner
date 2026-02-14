@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "10671d511b2d",
+  "session_id": "12dab81d-4516-4be2-ab90-68ccb81a694a",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-14T08:24:30.89122Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "components/board/AssignmentCell.vue",
+    "components/board/CapacityBoard.vue",
+    "layouts/default.vue"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 44748,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 656384,
+    "output_tokens": 3582,
+    "api_call_count": 18
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-14T08:24:30.875752Z",
+    "agent_lines": 46,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 46,
+    "agent_percentage": 100
+  }
+}
