@@ -3,6 +3,7 @@
     :color="isSelected ? 'primary-lighten-5' : undefined"
     :elevation="isHovered ? 4 : 2"
     class="initiative-card"
+    data-testid="initiative-card"
     :class="{ 'selected-card': isSelected, 'cursor-pointer': !readonly }"
     @click="handleClick"
     @mouseenter="isHovered = true"

@@ -14,9 +14,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useSeedData } from '~/composables/useSeedData'
 
 const drawer = ref(true)
+const { seedDefaultData } = useSeedData()
+
+// Seed default data on app load
+onMounted(() => {
+  seedDefaultData()
+})
 </script>
 
 <style scoped>

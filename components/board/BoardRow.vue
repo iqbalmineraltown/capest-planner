@@ -1,5 +1,11 @@
 <template>
-  <tr class="board-row">
+  <tr
+    class="board-row"
+    :class="{ 'drag-over': isDragOver }"
+    @dragover.prevent="handleDragOver"
+    @dragleave="handleDragLeave"
+    @drop.prevent="handleDrop"
+  >
     <!-- Initiative name cell -->
     <td class="initiative-cell">
       <div class="d-flex flex-column">
@@ -28,6 +34,11 @@
           <v-icon start size="small">mdi-arrow-right</v-icon>
           Carries to {{ initiative.carriesOverTo }}
         </v-chip>
+        <!-- Drop zone indicator -->
+        <div v-if="isDragOver" class="drop-zone-indicator mt-2">
+          <v-icon size="small" color="primary">mdi-plus-circle</v-icon>
+          <span class="text-caption text-primary ml-1">Drop to assign</span>
+        </div>
       </div>
     </td>
 
@@ -45,7 +56,9 @@
           :assignment="assignment"
           :member="getMember(assignment.memberId)"
           :is-carryover="isAssignmentCarryover(assignment, week)"
+          draggable="true"
           @click="$emit('edit-assignment', { initiative, assignmentIndex: getAssignmentIndex(assignment) })"
+          @dragstart="handleAssignmentDragStart($event, assignment)"
         />
       </div>
     </td>
@@ -57,6 +70,7 @@
         size="small"
         variant="text"
         color="primary"
+        data-testid="add-assignment-btn"
         @click="$emit('add-assignment', initiative)"
       />
     </td>
@@ -64,6 +78,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember, Assignment } from '~/types'
 import { checkCarryOver } from '~/utils/capacityCalculator'
 import AssignmentCell from './AssignmentCell.vue'
@@ -72,12 +87,17 @@ const props = defineProps<{
   initiative: Initiative
   quarter: QuarterConfig | undefined
   members: TeamMember[]
+  draggedMember: TeamMember | null
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'edit-assignment': [payload: { initiative: Initiative; assignmentIndex: number }]
   'add-assignment': [initiative: Initiative]
+  'drop-member': [payload: { initiative: Initiative; memberId: string; role: string }]
 }>()
+
+// Drag over state
+const isDragOver = ref(false)
 
 // Role color mapping
 const roleColors: Record<string, string> = {
@@ -111,11 +131,71 @@ function isAssignmentCarryover(assignment: Assignment, currentWeek: number): boo
 function getAssignmentIndex(assignment: Assignment): number {
   return props.initiative.assignments.findIndex((a) => a === assignment)
 }
+
+// Drag and drop handlers
+function handleDragOver(event: DragEvent) {
+  if (props.draggedMember) {
+    isDragOver.value = true
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy'
+    }
+  }
+}
+
+function handleDragLeave() {
+  isDragOver.value = false
+}
+
+function handleDrop(event: DragEvent) {
+  isDragOver.value = false
+
+  if (!props.draggedMember) return
+
+  // Find a matching role requirement
+  const memberRoles = props.draggedMember.roles
+  const matchingRequirement = props.initiative.roleRequirements.find(
+    (req) => memberRoles.includes(req.role)
+  )
+
+  if (matchingRequirement) {
+    emit('drop-member', {
+      initiative: props.initiative,
+      memberId: props.draggedMember.id,
+      role: matchingRequirement.role,
+    })
+  } else if (props.initiative.roleRequirements.length > 0) {
+    // Use first role requirement if no match
+    emit('drop-member', {
+      initiative: props.initiative,
+      memberId: props.draggedMember.id,
+      role: props.initiative.roleRequirements[0].role,
+    })
+  }
+}
+
+function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/json', JSON.stringify({
+      type: 'assignment',
+      initiativeId: props.initiative.id,
+      assignment,
+    }))
+  }
+}
 </script>
 
 <style scoped>
+.board-row {
+  transition: background-color 0.2s ease;
+}
+
 .board-row:hover {
   background-color: #fafafa;
+}
+
+.board-row.drag-over {
+  background-color: #e3f2fd !important;
 }
 
 .initiative-cell {
@@ -148,5 +228,14 @@ function getAssignmentIndex(assignment: Assignment): number {
   background: white;
   z-index: 1;
   border-left: 1px solid #e0e0e0;
+}
+
+.drop-zone-indicator {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+  border: 1px dashed #1976d2;
 }
 </style>

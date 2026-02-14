@@ -3,6 +3,7 @@
     class="member-card"
     elevation="2"
     hover
+    data-testid="member-card"
     :class="{ 'cursor-pointer': !editMode }"
     @click="!editMode && $emit('click', member.id)"
   >

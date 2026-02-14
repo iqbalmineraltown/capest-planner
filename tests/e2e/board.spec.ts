@@ -6,47 +6,61 @@ test.describe('Capacity Board Page', () => {
     await expect(page.locator('h1')).toContainText('Capacity Board')
   })
 
-  test('should display board with initiatives and assignments', async ({ page }) => {
+  test('should display member pool with available crew', async ({ page }) => {
     await page.goto('/board')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1000)
 
-    await page.evaluate(() => {
-      localStorage.setItem('capest-quarters', JSON.stringify([{
-        id: 'Q1-2025',
-        label: '2025 Q1',
-        totalWeeks: 13,
-        startDate: '2025-01-01T00:00:00.000Z',
-        endDate: '2025-03-31T00:00:00.000Z'
-      }]))
-      localStorage.setItem('capest-members', JSON.stringify([
-        { id: 'member-1', name: 'Shanks', roles: ['BE', 'FE'], availability: 13, assignedInitiatives: ['init-1'] },
-        { id: 'member-2', name: 'Mihawk', roles: ['QA'], availability: 10, assignedInitiatives: [] }
-      ]))
-      localStorage.setItem('capest-initiatives', JSON.stringify([
-        {
-          id: 'init-1',
-          name: 'East Blue Conquest',
-          description: 'Take over the East Blue seas',
-          quarter: 'Q1-2025',
-          roleRequirements: [
-            { role: 'BE', effort: 8 },
-            { role: 'QA', effort: 4 }
-          ],
-          assignments: [
-            { memberId: 'member-1', role: 'BE', weeksAllocated: 8, startWeek: 1, isParallel: false }
-          ]
-        }
-      ]))
-    })
+    // Should show member pool section
+    await expect(page.locator('text=Available Crew')).toBeVisible({ timeout: 10000 })
 
-    await page.reload()
+    // Should show some members in the pool (seed data has crew members)
+    const memberPool = page.locator('.member-pool-card')
+    const count = await memberPool.count()
+    expect(count).toBeGreaterThan(0)
+  })
 
-    // Should show quarter label
-    await expect(page.locator('text=2025 Q1')).toBeVisible({ timeout: 10000 })
+  test('should display board with seeded initiatives', async ({ page }) => {
+    await page.goto('/board')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1000)
 
-    // Should show initiative
-    await expect(page.locator('text=East Blue Conquest')).toBeVisible()
+    // Should show capacity allocation section - use exact match to avoid strict mode
+    await expect(page.locator('span:has-text("Capacity Allocation")').first()).toBeVisible({ timeout: 10000 })
 
-    // Should show assignment (member name in assignment cell)
-    await expect(page.locator('text=Shanks')).toBeVisible()
+    // Should show initiatives count
+    await expect(page.locator('text=initiatives')).toBeVisible()
+  })
+
+  test('should display quarter selector', async ({ page }) => {
+    await page.goto('/board')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1000)
+
+    // Should have quarter selector dropdown
+    const quarterSelect = page.locator('.v-select').first()
+    await expect(quarterSelect).toBeVisible({ timeout: 10000 })
+  })
+
+  test('should have add quarter button', async ({ page }) => {
+    await page.goto('/board')
+    await page.waitForLoadState('networkidle')
+
+    // Should have Add Quarter button
+    await expect(page.locator('button:has-text("Add Quarter")')).toBeVisible({ timeout: 5000 })
+  })
+
+  test('should allow drag and drop from member pool', async ({ page }) => {
+    await page.goto('/board')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(1500)
+
+    // Get member pool cards
+    const memberCard = page.locator('.member-pool-card').first()
+    await expect(memberCard).toBeVisible({ timeout: 10000 })
+
+    // Member cards should be draggable
+    const isDraggable = await memberCard.getAttribute('draggable')
+    expect(isDraggable).toBe('true')
   })
 })

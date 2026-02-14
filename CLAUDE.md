@@ -109,3 +109,13 @@ All data is automatically persisted to localStorage with keys prefixed by `capes
 - Store pattern: Pinia stores with composition API setup functions
 - Component naming: PascalCase for files and components
 - Type safety: Strict TypeScript with proper typing
+
+## Parallel Development
+
+For complex or multi-file tasks, you are encouraged to spawn subagents or teammates to work in parallel. This can significantly speed up development for:
+- Creating multiple components simultaneously
+- Running independent tests
+- Parallel feature development
+- Code review and exploration tasks
+
+Use the Task tool to spawn specialized agents when appropriate.

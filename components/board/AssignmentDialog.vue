@@ -139,6 +139,8 @@ const props = defineProps<{
   assignment: Assignment | null
   members: TeamMember[]
   quarter: QuarterConfig | undefined
+  initialMemberId?: string
+  initialRole?: string
 }>()
 
 const emit = defineEmits<{
@@ -208,11 +210,27 @@ watch(
   { immediate: true }
 )
 
+// Pre-fill from initial values (drag-and-drop)
+watch(
+  () => [props.modelValue, props.initialMemberId, props.initialRole],
+  ([isOpen, memberId, role]) => {
+    if (isOpen && isNew.value) {
+      if (memberId) {
+        formData.value.memberId = memberId as string
+      }
+      if (role) {
+        formData.value.role = role as string
+      }
+    }
+  },
+  { immediate: true }
+)
+
 // Pre-select role based on initiative requirements
 watch(
   () => props.initiative,
   (initiative) => {
-    if (initiative && isNew.value && initiative.roleRequirements.length > 0) {
+    if (initiative && isNew.value && initiative.roleRequirements.length > 0 && !props.initialRole) {
       formData.value.role = initiative.roleRequirements[0].role
     }
   }

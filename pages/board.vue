@@ -41,7 +41,7 @@
       :initiatives="quarterInitiatives"
       :members="membersStore.members"
       @edit-assignment="openAssignmentDialog"
-      @add-assignment="openAddAssignmentDialog"
+      @add-assignment="handleAddAssignment"
     />
 
     <!-- Add Quarter Dialog -->
@@ -94,6 +94,8 @@
       :assignment="editingAssignment"
       :members="membersStore.members"
       :quarter="selectedQuarter"
+      :initial-member-id="initialMemberId"
+      :initial-role="initialRole"
       @save="handleSaveAssignment"
       @delete="handleDeleteAssignment"
     />
@@ -122,6 +124,8 @@ const showAssignmentDialog = ref(false)
 const selectedInitiative = ref<Initiative | null>(null)
 const editingAssignment = ref<Assignment | null>(null)
 const editingAssignmentIndex = ref<number>(-1)
+const initialMemberId = ref<string>('')
+const initialRole = ref<string>('')
 
 // New quarter form
 const currentYear = new Date().getFullYear()
@@ -183,13 +187,28 @@ function openAssignmentDialog(payload: { initiative: Initiative; assignmentIndex
   selectedInitiative.value = payload.initiative
   editingAssignmentIndex.value = payload.assignmentIndex
   editingAssignment.value = { ...payload.initiative.assignments[payload.assignmentIndex] }
+  initialMemberId.value = ''
+  initialRole.value = ''
   showAssignmentDialog.value = true
 }
 
-function openAddAssignmentDialog(initiative: Initiative) {
-  selectedInitiative.value = initiative
-  editingAssignmentIndex.value = -1
-  editingAssignment.value = null
+function handleAddAssignment(payload: { initiative: Initiative; memberId?: string; role?: string } | Initiative) {
+  // Handle both old format (just initiative) and new format (with memberId and role)
+  if ('memberId' in payload && payload.memberId) {
+    selectedInitiative.value = payload.initiative
+    editingAssignmentIndex.value = -1
+    editingAssignment.value = null
+    initialMemberId.value = payload.memberId
+    initialRole.value = payload.role || ''
+  } else {
+    // Old format - just initiative
+    const initiative = 'initiative' in payload ? payload.initiative : payload
+    selectedInitiative.value = initiative
+    editingAssignmentIndex.value = -1
+    editingAssignment.value = null
+    initialMemberId.value = ''
+    initialRole.value = ''
+  }
   showAssignmentDialog.value = true
 }
 
@@ -213,6 +232,8 @@ function handleSaveAssignment(assignment: Assignment) {
   showAssignmentDialog.value = false
   selectedInitiative.value = null
   editingAssignment.value = null
+  initialMemberId.value = ''
+  initialRole.value = ''
 }
 
 function handleDeleteAssignment() {
@@ -225,12 +246,17 @@ function handleDeleteAssignment() {
   showAssignmentDialog.value = false
   selectedInitiative.value = null
   editingAssignment.value = null
+  initialMemberId.value = ''
+  initialRole.value = ''
 }
 </script>
 
 <style scoped>
 .board-page {
   animation: fadeIn 0.3s ease-in-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes fadeIn {
