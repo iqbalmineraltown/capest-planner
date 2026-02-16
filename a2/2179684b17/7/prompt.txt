@@ -1,0 +1,26 @@
+<teammate-message teammate_id="team-lead">
+Update /Users/iqbal/projects/capest-planner/components/board/CapacityBoard.vue to work with smooth drag-and-drop using @formkit/drag-and-drop.
+
+Read the current file at /Users/iqbal/projects/capest-planner/components/board/CapacityBoard.vue first.
+
+Key changes needed:
+1. Import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
+2. Replace native drag handlers (handleDragStart, handleDragEnd) with the composable
+3. Use dragAndDrop from '@formkit/drag-and-drop/vue' to initialize smooth dragging on member pool cards
+4. The member pool cards should have:
+   - class="member-pool-card draggable-item"
+   - Remove :draggable="true" and native @dragstart/@dragend handlers
+   - Use the composable's startMemberDrag when drag starts
+5. Pass the composable's dragState to BoardRow as :dragged-member
+6. Update styles for smooth animations:
+   - .member-pool-card with smooth transitions
+   - .member-pool-card.dragging with scale and shadow effects
+   - Use cubic-bezier(0.4, 0, 0.2, 1) easing
+
+The composable provides:
+- startMemberDrag(member): start dragging a member
+- endDrag(): clear drag state
+- dragState: reactive drag state object
+
+Maintain all existing visual feedback and capacity indicators.
+</teammate-message>
