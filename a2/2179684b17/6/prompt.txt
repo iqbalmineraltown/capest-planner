@@ -1,0 +1,52 @@
+<teammate-message teammate_id="team-lead">
+You are implementing enhancements to `/components/board/AssignmentDialog.vue` for a capacity planning application.
+
+Read the current file first, then implement these changes:
+
+1. **Add new props:**
+   - `allInitiatives: Initiative[]` - for checking conflicts across all initiatives
+   - `initialStartWeek?: number` - for pre-filling start week from drag-drop
+   - `excludeInitiativeId?: string` - the current initiative ID (for excluding when editing)
+   - `excludeAssignmentIndex?: number` - the current assignment index (for excluding when editing)
+
+2. **Add week conflict validation:**
+   - Import `checkWeekConflicts` from `~/utils/capacityCalculator`
+   - Add computed `weekConflict` that checks for double-booking:
+   ```typescript
+   const weekConflict = computed(() => {
+     if (!props.allInitiatives || !props.quarter) return { hasConflict: false, conflictingWeeks: [], conflicts: [] }
+     return checkWeekConflicts(
+       formData.value.memberId,
+       formData.value.startWeek,
+       formData.value.weeksAllocated,
+       props.allInitiatives,
+       props.quarter.id,
+       props.excludeInitiativeId,
+       props.excludeAssignmentIndex
+     )
+   })
+   ```
+
+3. **Show conflict error alert:**
+   - Add a `v-alert` with `type="error"` before the form, visible when `weekConflict.hasConflict`
+   - Display the conflicting weeks and initiative names
+
+4. **Replace isParallel toggle with info section:**
+   - Remove the `v-switch` for `isParallel`
+   - Keep the `isParallel` in formData for backward compatibility but default to `true` (parallel is now implicit)
+   - Add a small info section explaining that assignments can run parallel with others by default
+
+5. **Handle initialStartWeek prop:**
+   - Add a watcher for when dialog opens with `initialStartWeek` to pre-fill `formData.value.startWeek`
+
+6. **Disable save button when conflicts exist:**
+   - The save button should be disabled when `weekConflict.hasConflict` is true
+
+This is a Nuxt.js 3 + Vue 3 + Vuetify 3 project using Composition API with `<script setup lang="ts">`.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"3","subject":"Update AssignmentDialog.vue with conflict validation and role progress","description":"Modify `/components/board/AssignmentDialog.vue` to:\n1. Add week conflict validation using `checkWeekConflicts()` utility\n2. Show error alert when conflicts detected with details\n3. Add `initialStartWeek` prop for drag-drop pre-fill\n4. Add `allInitiatives` prop for conflict checking\n5. Add `excludeInitiativeId` and `excludeAssignmentIndex` for editing existing assignments\n6. Replace `isParallel` toggle with a simple info section showing role fulfillment (the parallel concept is now implicit)\n\nKey changes:\n- Import `checkWeekConflicts` from utils/capacityCalculator.ts\n- Add computed `weekConflict` that checks for double-booking\n- Show v-alert with type=\"error\" when conflicts exist\n- Pre-fill `startWeek` from `initialStartWeek` prop when provided\n- Pass initiative ID and assignment index to conflict checker when editing","assignedBy":"team-lead","timestamp":"2026-02-16T02:56:56.096Z"}
+</teammate-message>
