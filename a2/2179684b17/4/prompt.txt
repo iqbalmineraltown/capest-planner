@@ -1,0 +1,37 @@
+<teammate-message teammate_id="team-lead">
+You are implementing enhancements to `/components/board/CapacityBoard.vue` for a capacity planning application.
+
+Read the current file first, then implement these changes:
+
+1. **Pass allInitiatives to BoardRow:**
+   - The BoardRow component now needs an `allInitiatives` prop for warning calculations
+   - Pass `allInitiatives` from `initiativesStore.initiatives` to each BoardRow
+
+2. **Update drop-member handler:**
+   - The `handleDropMember` function now receives `startWeek` in the payload
+   - Update the emit signature to include `startWeek` in the `add-assignment` event
+
+3. **Update emit signature:**
+   - Change `'add-assignment': [payload: { initiative: Initiative; memberId: string; role: string }]` to include `startWeek: number`
+
+4. **Update BoardRow template binding:**
+   - Add `:all-initiatives="initiativesStore.initiatives"` to the BoardRow component
+
+The updated emit should be:
+```typescript
+emit('add-assignment', {
+  initiative: payload.initiative,
+  memberId: payload.memberId,
+  role: payload.role,
+  startWeek: payload.startWeek,
+})
+```
+
+This is a Nuxt.js 3 + Vue 3 + Vuetify 3 project using Composition API with `<script setup lang="ts">`.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"4","subject":"Update CapacityBoard.vue to pass allInitiatives and handle startWeek","description":"Modify `/components/board/CapacityBoard.vue` to:\n1. Add `allInitiatives` prop to BoardRow component\n2. Update `handleDropMember` to include `startWeek` parameter\n3. Update the emit signature to include `startWeek` in `add-assignment` payload\n\nKey changes:\n- Pass `allInitiatives` from initiativesStore to each BoardRow\n- Modify `handleDropMember` to accept and pass through `startWeek`\n- Update emit to include `startWeek` in the payload","assignedBy":"team-lead","timestamp":"2026-02-16T02:56:56.112Z"}
+</teammate-message>
