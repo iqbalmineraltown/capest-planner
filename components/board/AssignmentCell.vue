@@ -1,11 +1,11 @@
 <template>
   <div
+    ref="cellRef"
     class="assignment-cell"
     :class="[
       `role-${roleClass}`,
-      { 'carryover-cell': isCarryover }
+      { 'carryover-cell': isCarryover, 'dragging': isDragging }
     ]"
-    draggable="true"
     @click="$emit('click')"
   >
     <div class="cell-content">
@@ -19,17 +19,21 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { Assignment, TeamMember } from '~/types'
 
 const props = defineProps<{
   assignment: Assignment
   member: TeamMember | undefined
   isCarryover: boolean
+  isDragging?: boolean
 }>()
 
 defineEmits<{
   click: []
 }>()
+
+const cellRef = ref<HTMLDivElement | null>(null)
 
 const roleClass = computed(() => {
   const role = props.assignment.role.toLowerCase()
@@ -51,15 +55,21 @@ const cellStyle = computed(() => {
     color: colors.text,
   }
 })
+
+defineExpose({
+  cellRef,
+})
 </script>
 
 <style scoped>
 .assignment-cell {
   padding: 4px 8px;
   border-radius: 4px;
-  cursor: pointer;
+  cursor: grab;
   font-size: 0.75rem;
-  transition: all 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -69,6 +79,14 @@ const cellStyle = computed(() => {
 .assignment-cell:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.assignment-cell.dragging {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+  z-index: 1000;
+  cursor: grabbing;
 }
 
 .role-be {

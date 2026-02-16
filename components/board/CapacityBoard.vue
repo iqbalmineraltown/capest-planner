@@ -19,10 +19,10 @@
             cols="6" sm="4" md="3" lg="2"
           >
             <v-card
-              class="member-pool-card pa-2"
+              class="member-pool-card pa-2 draggable-item"
               variant="outlined"
               :draggable="true"
-              @dragstart="handleDragStart($event, member)"
+              @dragstart="handleDragStart(member)"
               @dragend="handleDragEnd"
             >
               <div class="d-flex align-center">
@@ -134,7 +134,8 @@
               :initiative="initiative"
               :quarter="quarter"
               :members="members"
-              :dragged-member="draggedMember"
+              :dragged-member="dragState?.type === 'member' ? dragState.data as TeamMember : null"
+              :all-initiatives="initiativesStore.initiatives"
               @edit-assignment="$emit('edit-assignment', $event)"
               @add-assignment="$emit('add-assignment', $event)"
               @drop-member="handleDropMember"
@@ -147,11 +148,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember } from '~/types'
 import { useMembersStore } from '~/stores/members'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { calculateMemberQuarterCapacity } from '~/utils/capacityCalculator'
+import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
 import BoardRow from './BoardRow.vue'
 
 const props = defineProps<{
@@ -162,14 +164,14 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'edit-assignment': [payload: { initiative: Initiative; assignmentIndex: number }]
-  'add-assignment': [payload: { initiative: Initiative; memberId: string; role: string }]
+  'add-assignment': [payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative]
 }>()
 
 const membersStore = useMembersStore()
 const initiativesStore = useInitiativesStore()
 
-// Drag state
-const draggedMember = ref<TeamMember | null>(null)
+// Use the drag-and-drop composable
+const { dragState, startMemberDrag, endDrag } = useBoardDragDrop()
 
 // Get available members (those with remaining capacity)
 const availableMembers = computed(() => {
@@ -217,26 +219,22 @@ function getCapacityColor(memberId: string): string {
   return 'primary'
 }
 
-// Drag handlers
-function handleDragStart(event: DragEvent, member: TeamMember) {
-  draggedMember.value = member
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'assign'
-    event.dataTransfer.setData('text/plain', member.id)
-    event.dataTransfer.setData('application/json', JSON.stringify({
-      type: 'member',
-      memberId: member.id,
-      roles: member.roles,
-    }))
-  }
+// Drag handlers using the composable
+function handleDragStart(member: TeamMember) {
+  startMemberDrag(member)
 }
 
 function handleDragEnd() {
-  draggedMember.value = null
+  endDrag()
 }
 
-function handleDropMember(payload: { initiative: Initiative; memberId: string; role: string }) {
-  emit('add-assignment', payload)
+function handleDropMember(payload: { initiative: Initiative; memberId: string; role: string; startWeek: number }) {
+  emit('add-assignment', {
+    initiative: payload.initiative,
+    memberId: payload.memberId,
+    role: payload.role,
+    startWeek: payload.startWeek,
+  })
 }
 
 // Helper functions
@@ -279,17 +277,25 @@ function getRoleColor(role: string): string {
 
 .member-pool-card {
   cursor: grab;
-  transition: all 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
 }
 
 .member-pool-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .member-pool-card:active {
   cursor: grabbing;
+}
+
+.member-pool-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
 }
 
 .capacity-info {
