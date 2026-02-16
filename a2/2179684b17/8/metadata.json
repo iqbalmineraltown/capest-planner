@@ -1,0 +1,30 @@
+{
+  "cli_version": "0.4.2",
+  "checkpoint_id": "a22179684b17",
+  "session_id": "5deb0957-a0dd-4afb-8a56-9a38b395ba55",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-16T03:58:37.541355Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "components/board/BoardRow.vue",
+    "composables/useBoardDragDrop.ts"
+  ],
+  "agent": "Claude Code",
+  "token_usage": {
+    "input_tokens": 83769,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2695040,
+    "output_tokens": 10862,
+    "api_call_count": 42
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-16T03:58:37.504872Z",
+    "agent_lines": 473,
+    "human_added": 60,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 533,
+    "agent_percentage": 88.74296435272045
+  }
+}

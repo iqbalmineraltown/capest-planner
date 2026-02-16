@@ -1,0 +1,362 @@
+Implement the following plan:
+
+# Smooth Drag-and-Drop Enhancement Plan
+
+## Context
+
+The user wants to make all cards on the capacity board draggable to any grid position with a smooth, Jira/Trello-like drag-and-drop experience. The current implementation uses native HTML5 drag-and-drop which feels clunky and lacks smooth animations, ghost elements, and intuitive visual feedback.
+
+## Current Implementation Issues
+
+1. **Native HTML5 Drag-Drop Limitations:**
+   - No smooth animations
+   - No ghost element following cursor
+   - Basic visual feedback
+   - Can't reorder existing assignments
+   - Can't drag assignments between initiatives/weeks
+
+2. **Limited Drag Operations:**
+   - Only members can be dragged from pool
+   - Assignments can't be moved once placed
+   - No multi-select drag
+
+---
+
+## Recommended Solution: @formkit/drag-and-drop
+
+**Why this library:**
+- Lightweight (~5KB gzipped)
+- Framework-agnostic, works great with Vue 3
+- Built-in smooth animations
+- Clean, simple API
+- Touch support included
+- No dependencies on heavy libraries like SortableJS
+
+---
+
+## Implementation Plan
+
+### Step 1: Install Library
+
+```bash
+npm install @formkit/drag-and-drop
+```
+
+### Step 2: Create Drag-Drop Composable
+
+**File: `/composables/useDragDrop.ts`**
+
+Create a reusable composable that wraps @formkit/drag-and-drop:
+
+```typescript
+import { dragAndDrop } from '@formkit/drag-and-drop/vue'
+import type { Initiative, Assignment, TeamMember } from '~/types'
+
+export interface DragState {
+  type: 'member' | 'assignment'
+  data: TeamMember | Assignment
+  sourceInitiativeId?: string
+  sourceWeek?: number
+}
+
+export function useBoardDragDrop() {
+  const dragState = ref<DragState | null>(null)
+
+  // Initialize drag on a container
+  function initDrag(containerRef: Ref<HTMLElement | null>, options: {...}) {
+    // ... setup drag and drop
+  }
+
+  return { dragState, initDrag }
+}
+```
+
+### Step 3: Update AssignmentCell.vue
+
+**File: `/components/board/AssignmentCell.vue`**
+
+Make assignment cards smoothly draggable:
+
+```vue
+<template>
+  <div
+    ref="cellRef"
+    class="assignment-cell"
+    :class="[`role-${roleClass}`, { 'carryover-cell': isCarryover, 'dragging': isDragging }]"
+    @click="$emit('click')"
+  >
+    <div class="cell-content">
+      <span class="member-name">{{ member?.name || 'Unknown' }}</span>
+      <span class="role-badge">{{ assignment.role }}</span>
+    </div>
+    <v-icon v-if="isCarryover" size="x-small" class="carryover-icon">
+      mdi-arrow-right-bold
+    </v-icon>
+  </div>
+</template>
+```
+
+Key changes:
+- Add `ref="cellRef"` for library binding
+- Add `.dragging` class for visual feedback
+- Remove native `draggable="true"`
+
+### Step 4: Update BoardRow.vue
+
+**File: `/components/board/BoardRow.vue`**
+
+Enable smooth drop zones on week cells:
+
+```vue
+<template>
+  <tr class="board-row">
+    <!-- Initiative name cell -->
+    <td class="initiative-cell">...</td>
+
+    <!-- Week cells with drop zones -->
+    <td
+      v-for="week in quarter?.totalWeeks || 13"
+      :key="week"
+      ref="weekCellRefs"
+      class="week-cell"
+      :class="{
+        'carryover-week': week > (quarter?.totalWeeks || 13) - 2,
+        'drag-over': isDropTarget(week)
+      }"
+    >
+      <div class="assignments-container" :data-week="week" :data-initiative="initiative.id">
+        <AssignmentCell
+          v-for="(assignment, index) in getAssignmentsForWeek(week)"
+          :key="`${assignment.memberId}-${assignment.startWeek}`"
+          :assignment="assignment"
+          :member="getMember(assignment.memberId)"
+          :is-carryover="isAssignmentCarryover(assignment, week)"
+          @click="$emit('edit-assignment', { initiative, assignmentIndex: getAssignmentIndex(assignment) })"
+        />
+      </div>
+    </td>
+  </tr>
+</template>
+```
+
+Key changes:
+- Use refs array for week cells
+- Add data attributes for drop target identification
+- Smooth drop zone highlighting
+
+### Step 5: Update CapacityBoard.vue
+
+**File: `/components/board/CapacityBoard.vue`**
+
+Initialize drag-and-drop on member pool:
+
+```vue
+<script setup lang="ts">
+import { dragAndDrop } from '@formkit/drag-and-drop/vue'
+
+// Member pool drag initialization
+const memberPoolRef = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  if (memberPoolRef.value) {
+    dragAndDrop({
+      parent: memberPoolRef.value,
+      values: availableMembers,
+      draggable: (el) => el.classList.contains('member-pool-card'),
+      handle: (el) => el,
+    })
+  }
+})
+</script>
+```
+
+### Step 6: Add Smooth Animations CSS
+
+**File: `/assets/styles/drag-drop.css`** (or in component `<style>`)
+
+```css
+/* Smooth drag animations */
+.assignment-cell {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.2s ease;
+}
+
+.assignment-cell.dragging {
+  transform: scale(1.05) rotate(2deg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  opacity: 0.9;
+  z-index: 1000;
+}
+
+.assignment-cell.drag-ghost {
+  opacity: 0.4;
+}
+
+.week-cell.drag-over {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  box-shadow: inset 0 0 0 2px #1976d2;
+}
+
+.member-pool-card {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s ease;
+  cursor: grab;
+}
+
+.member-pool-card:active {
+  cursor: grabbing;
+}
+
+.member-pool-card.dragging {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  opacity: 0.8;
+}
+```
+
+### Step 7: Create Drop Handler Logic
+
+**File: `/composables/useBoardDragDrop.ts`**
+
+```typescript
+export function useBoardDragDrop() {
+  const initiativesStore = useInitiativesStore()
+  const membersStore = useMembersStore()
+
+  function handleDropOnWeek(
+    droppedItem: { type: 'member' | 'assignment'; data: any },
+    targetInitiativeId: string,
+    targetWeek: number
+  ) {
+    if (droppedItem.type === 'member') {
+      // Create new assignment
+      const member = droppedItem.data as TeamMember
+      // ... create assignment logic
+    } else {
+      // Move existing assignment
+      const assignment = droppedItem.data as Assignment
+      // ... move assignment logic
+    }
+  }
+
+  return { handleDropOnWeek }
+}
+```
+
+---
+
+## Files to Modify
+
+| File | Key Changes |
+|------|-------------|
+| `package.json` | Add `@formkit/drag-and-drop` dependency |
+| `composables/useBoardDragDrop.ts` | **NEW** - Drag-drop composable |
+| `components/board/AssignmentCell.vue` | Smooth draggable cards with animations |
+| `components/board/BoardRow.vue` | Drop zones with visual feedback |
+| `components/board/CapacityBoard.vue` | Member pool drag initialization |
+| `assets/styles/drag-drop.css` | **NEW** - Smooth animation styles |
+
+---
+
+## Drag Operations Supported
+
+1. **Member Pool → Week Cell** - Drag member to any week to create assignment
+2. **Assignment → Same Week** - Reorder within week
+3. **Assignment → Different Week (Same Initiative)** - Move to different start week
+4. **Assignment → Different Initiative** - Move assignment to another initiative
+
+---
+
+## Visual Feedback
+
+- **Dragging card**: Scaled up with shadow, slight rotation
+- **Ghost element**: Faded original position
+- **Valid drop zone**: Highlighted background with border
+- **Invalid drop zone**: Subtle red indicator (conflict warning)
+- **Smooth transitions**: Cubic-bezier easing for all animations
+
+---
+
+## Verification
+
+1. **Drag member from pool**: Smooth drag with ghost element, drop zones highlight
+2. **Move assignment to different week**: Assignment moves smoothly with animation
+3. **Reorder within week**: Cards reorder with smooth animation
+4. **Cross-initiative drag**: Assignment transfers between initiatives
+5. **Touch support**: Works on mobile/tablet devices
+6. **E2E tests**: All existing tests still pass
+
+---
+
+## Alternative Libraries Considered
+
+| Library | Pros | Cons |
+|---------|------|------|
+| **@formkit/drag-and-drop** | Lightweight, Vue-friendly, smooth animations | Smaller community |
+| vue-draggable-plus | Full SortableJS features | Heavier bundle |
+| dnd-kit | Very smooth, accessible | React-focused, needs Vue adapter |
+| vue3-smooth-dnd | Smooth animations | Less maintained |
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/iqbal/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+<teammate-message teammate_id="assignment-cell-dev" color="blue">
+{"type":"idle_notification","from":"assignment-cell-dev","timestamp":"2026-02-16T03:22:27.026Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="capacity-board-dev" color="green" summary="CapacityBoard.vue updated successfully">
+I have completed the update to CapacityBoard.vue. The component now uses the useBoardDragDrop composable with smooth animations using cubic-bezier easing. All changes:
+
+1. Imported useBoardDragDrop composable
+2. Replaced local drag state with composable's dragState
+3. Updated member pool cards with draggable-item class and simplified drag handlers
+4. Updated BoardRow :dragged-member prop to use dragState
+5. Enhanced styles with smooth cubic-bezier(0.4, 0, 0.2, 1) transitions and .dragging class effects
+
+All existing visual feedback and capacity indicators are maintained.
+</teammate-message>
+
+<teammate-message teammate_id="capacity-board-dev" color="green">
+{"type":"idle_notification","from":"capacity-board-dev","timestamp":"2026-02-16T03:23:08.454Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="board-row-dev" color="yellow">
+{"type":"idle_notification","from":"board-row-dev","timestamp":"2026-02-16T03:24:29.750Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"capacity-board-dev has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="capacity-board-dev" color="green">
+{"type":"shutdown_approved","requestId":"shutdown-1771212300602@capacity-board-dev","from":"capacity-board-dev","timestamp":"2026-02-16T03:25:06.164Z","paneId":"%6","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"assignment-cell-dev has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="assignment-cell-dev" color="blue">
+{"type":"shutdown_approved","requestId":"shutdown-1771212300449@assignment-cell-dev","from":"assignment-cell-dev","timestamp":"2026-02-16T03:25:07.236Z","paneId":"%5","backendType":"tmux"}
+</teammate-message>
+
+<teammate-message teammate_id="system">
+{"type":"teammate_terminated","message":"board-row-dev has shut down."}
+</teammate-message>
+
+<teammate-message teammate_id="board-row-dev" color="yellow">
+{"type":"shutdown_approved","requestId":"shutdown-1771212300532@board-row-dev","from":"board-row-dev","timestamp":"2026-02-16T03:25:19.383Z","paneId":"%7","backendType":"tmux"}
+</teammate-message>
+
+---
+
+rembember to always run the e2e tests
+
+---
+
+commit changes and push

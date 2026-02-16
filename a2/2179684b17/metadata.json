@@ -3,12 +3,13 @@
   "checkpoint_id": "a22179684b17",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 14,
+  "checkpoints_count": 16,
   "files_touched": [
     "components/board/AssignmentCell.vue",
     "components/board/AssignmentDialog.vue",
     "components/board/BoardRow.vue",
     "components/board/CapacityBoard.vue",
+    "composables/useBoardDragDrop.ts",
     "pages/board.vue",
     "tests/e2e/board.spec.ts",
     "tests/unit/utils/capacityCalculator.test.ts",
@@ -71,13 +72,20 @@
       "context": "/a2/2179684b17/7/context.md",
       "content_hash": "/a2/2179684b17/7/content_hash.txt",
       "prompt": "/a2/2179684b17/7/prompt.txt"
+    },
+    {
+      "metadata": "/a2/2179684b17/8/metadata.json",
+      "transcript": "/a2/2179684b17/8/full.jsonl",
+      "context": "/a2/2179684b17/8/context.md",
+      "content_hash": "/a2/2179684b17/8/content_hash.txt",
+      "prompt": "/a2/2179684b17/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 670552,
+    "input_tokens": 754321,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 6254720,
-    "output_tokens": 36329,
-    "api_call_count": 126
+    "cache_read_tokens": 8949760,
+    "output_tokens": 47191,
+    "api_call_count": 168
   }
 }
