@@ -1,0 +1,25 @@
+<teammate-message teammate_id="team-lead">
+Update /Users/iqbal/projects/capest-planner/components/board/BoardRow.vue to work with smooth drag-and-drop using @formkit/drag-and-drop.
+
+Read the current file at /Users/iqbal/projects/capest-planner/components/board/BoardRow.vue first.
+
+Key changes needed:
+1. Import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
+2. Replace the native drag event handlers with the composable's state management
+3. Use the composable's dragState to check what's being dragged
+4. Update handleWeekDragOver to use the composable's setDropTarget
+5. Update handleWeekDrop to use the composable's handleDropOnWeek
+6. Keep the visual feedback classes (drag-over-week, drop-zone-indicator)
+7. Pass isDragging prop to AssignmentCell components
+8. For assignment reordering within the same week, use @formkit/drag-and-drop
+
+The composable provides:
+- dragState: current drag state (member or assignment)
+- isDragging: computed boolean
+- setDropTarget(initiativeId, week): set current drop target
+- isDropTarget(initiativeId, week): check if cell is drop target
+- handleDropOnWeek(initiative, week): handle the drop action
+- endDrag(): clear drag state
+
+Make sure to maintain all existing functionality while integrating the new smooth drag system.
+</teammate-message>
