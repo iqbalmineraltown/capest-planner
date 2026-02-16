@@ -1,0 +1,279 @@
+Implement the following plan:
+
+# Capacity Planning Board Enhancement Plan
+
+## Context
+
+The user wants to enhance the capacity planning board with:
+1. **Drag-and-drop to specific week cells** - Allow crew cards to be dropped on any week cell to set the starting week directly
+2. **Warning markers on initiatives** - Show warnings when crew is overcapacity or role requirements are unfilled
+3. **No double booking** - Prevent a crew member from being assigned to the same week more than once across all initiatives
+4. **Improved parallel UX** - Replace confusing `isParallel` boolean with visual progress indicators showing role fulfillment (e.g., 4 manweeks MOBILE can be 1 crew x 4 weeks, 2 crew x 2 weeks, or 4 crew x 1 week)
+
+## Current Architecture
+
+- **BoardRow.vue**: Initiative rows with week cells, currently drops on entire row
+- **AssignmentCell.vue**: Draggable assignment cells within weeks
+- **CapacityBoard.vue**: Member pool sidebar + board table, handles drag state
+- **AssignmentDialog.vue**: Form for creating/editing assignments with `isParallel` toggle
+- **capacityCalculator.ts**: Utility functions for capacity calculations
+
+---
+
+## Implementation Plan
+
+### Step 1: Add Validation Utilities
+
+**File: `/utils/capacityCalculator.ts`**
+
+Add three new functions:
+
+```typescript
+// 1. Check week conflicts across all initiatives
+export function checkWeekConflicts(
+  memberId: string,
+  startWeek: number,
+  weeksAllocated: number,
+  initiatives: Initiative[],
+  quarterId: string,
+  excludeInitiativeId?: string,
+  excludeAssignmentIndex?: number
+): {
+  hasConflict: boolean
+  conflictingWeeks: number[]
+  conflicts: Array<{ initiativeName: string; weeks: number[] }>
+}
+
+// 2. Get initiative warnings (over-capacity members, unfilled roles)
+export function getInitiativeWarnings(
+  initiative: Initiative,
+  members: TeamMember[],
+  allInitiatives: Initiative[],
+  quarterId: string
+): {
+  hasWarnings: boolean
+  overCapacityMembers: string[]
+  unfilledRoles: Array<{ role: RoleType; required: number; assigned: number }>
+}
+
+// 3. Get role fulfillment progress
+export function getRoleFulfillment(
+  initiative: Initiative
+): Array<{
+  role: RoleType
+  required: number
+  assigned: number
+  percentage: number
+  assignees: Array<{ memberId: string; weeksAllocated: number }>
+}>
+```
+
+### Step 2: Add Type Definition
+
+**File: `/types/initiative.ts`**
+
+```typescript
+export interface InitiativeWarnings {
+  hasWarnings: boolean
+  overCapacityMembers: string[]
+  unfilledRoles: Array<{ role: RoleType; required: number; assigned: number }>
+}
+```
+
+### Step 3: Enable Week-Cell Drop Targets
+
+**File: `/components/board/BoardRow.vue`**
+
+Changes:
+1. Add `isDragOverWeek` ref to track which week cell is being hovered
+2. Add drag handlers to individual week cells (`@dragover`, `@dragleave`, `@drop`)
+3. Emit `drop-member` with `startWeek` included
+4. Add CSS class `.drag-over-week` for visual feedback
+5. Add prop `allInitiatives: Initiative[]` for warning calculations
+
+```vue
+<td
+  v-for="week in quarter?.totalWeeks || 13"
+  :key="week"
+  class="week-cell"
+  :class="{
+    'carryover-week': week > (quarter?.totalWeeks || 13) - 2,
+    'drag-over-week': isDragOverWeek === week
+  }"
+  @dragover.prevent="handleWeekDragOver($event, week)"
+  @dragleave="handleWeekDragLeave"
+  @drop.prevent="handleWeekDrop($event, week)"
+>
+```
+
+### Step 4: Add Warning Indicators
+
+**File: `/components/board/BoardRow.vue`**
+
+Add computed `warnings` using `getInitiativeWarnings()` and display warning chip on initiative row:
+
+```vue
+<v-tooltip v-if="warnings.hasWarnings" location="top">
+  <template #activator="{ props: tooltipProps }">
+    <v-chip v-bind="tooltipProps" size="x-small" color="warning" variant="flat">
+      <v-icon start size="small">mdi-alert</v-icon>
+      {{ warnings.overCapacityMembers.length + warnings.unfilledRoles.length }}
+    </v-chip>
+  </template>
+  <!-- Tooltip content with details -->
+</v-tooltip>
+```
+
+### Step 5: Replace Role Chips with Progress Indicators
+
+**File: `/components/board/BoardRow.vue`**
+
+Replace role requirement chips with progress bars showing fulfillment:
+
+```vue
+<div v-for="fulfillment in roleFulfillment" class="role-progress-chip">
+  <v-chip :color="getRoleColor(fulfillment.role)" size="x-small">
+    {{ fulfillment.role }}
+  </v-chip>
+  <v-progress-linear
+    :model-value="fulfillment.percentage"
+    :color="getProgressColor(fulfillment.percentage)"
+  />
+  <span>{{ fulfillment.assigned }}/{{ fulfillment.required }}w</span>
+</div>
+```
+
+### Step 6: Pass All Initiatives Through Components
+
+**File: `/components/board/CapacityBoard.vue`**
+
+- Add `allInitiatives` prop to BoardRow
+- Update `handleDropMember` to pass `startWeek`
+
+### Step 7: Add Double-Booking Validation to Dialog
+
+**File: `/components/board/AssignmentDialog.vue`**
+
+Changes:
+1. Add prop `allInitiatives: Initiative[]`
+2. Add computed `weekConflict` using `checkWeekConflicts()`
+3. Show error alert when conflicts detected
+4. Add prop `initialStartWeek` for drag-drop pre-fill
+5. Replace `isParallel` toggle with role fulfillment progress section
+
+```vue
+<v-alert v-if="weekConflict.hasConflict" type="error">
+  <div>Week conflict detected!</div>
+  <div v-for="conflict in weekConflict.conflicts">
+    {{ conflict.initiativeName }}: Week {{ conflict.weeks.join(', ') }}
+  </div>
+</v-alert>
+```
+
+### Step 8: Update Parent Page
+
+**File: `/pages/board.vue`**
+
+Changes:
+1. Add `initialStartWeek` ref
+2. Update `handleAddAssignment` to capture and pass `startWeek`
+3. Pass `allInitiatives` to AssignmentDialog
+
+---
+
+## Files to Modify
+
+| File | Key Changes |
+|------|-------------|
+| `utils/capacityCalculator.ts` | Add `checkWeekConflicts`, `getInitiativeWarnings`, `getRoleFulfillment` |
+| `types/initiative.ts` | Add `InitiativeWarnings` interface |
+| `components/board/BoardRow.vue` | Week-cell drops, warnings, progress indicators |
+| `components/board/CapacityBoard.vue` | Pass allInitiatives, handle startWeek in drop |
+| `components/board/AssignmentDialog.vue` | Conflict validation, role progress, remove isParallel toggle |
+| `pages/board.vue` | Pass allInitiatives, handle initialStartWeek |
+
+---
+
+## Verification
+
+1. **Drag to week cell**: Drag member card to specific week cell → dialog opens with correct startWeek pre-filled
+2. **Warning indicators**: Assign member beyond their capacity → warning chip appears on initiative
+3. **Unfilled roles**: Create initiative with unfilled role requirement → warning chip shows unfilled count
+4. **Double booking prevention**: Try to assign same member to overlapping weeks → error alert shows conflicting initiatives
+5. **Role progress**: View initiative row → see progress bars with X/Yw for each role
+6. **Parallel implicit**: Multiple crew on same role shows combined progress without explicit parallel flag
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/iqbal/.REDACTED.jsonl
+
+If this plan can be broken down into multiple independent tasks, consider using the TeamCreate tool to create a team and parallelize the work.
+
+---
+
+<teammate-message teammate_id="capacity-board-specialist" color="green" summary="CapacityBoard enhancements completed">
+Milord's CapacityBoard enhancements have been executed flawlessly!
+
+**Changes completed in `/components/board/CapacityBoard.vue`:**
+
+1. ✅ **Updated emit signature** (line 163-166): Added `startWeek: number` to the `add-assignment` payload type definition
+
+2. ✅ **Updated handleDropMember function** (line 238-245): Now accepts `startWeek` in the payload and explicitly emits it in the correct structure
+
+3. ✅ **Added allInitiatives prop binding** (line 131-141): Passed `:all-initiatives="initiativesStore.initiatives"` to each BoardRow component
+
+The board is now properly configured to receive `startWeek` data from the BoardRow component and forward it through the emit chain. The BoardRow component will have access to all initiatives for its warning calculations as intended.
+</teammate-message>
+
+<teammate-message teammate_id="capacity-board-specialist" color="green">
+{"type":"idle_notification","from":"capacity-board-specialist","timestamp":"2026-02-16T02:57:19.651Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="board-page-specialist" color="yellow">
+{"type":"idle_notification","from":"board-page-specialist","timestamp":"2026-02-16T02:57:28.520Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="capacity-board-specialist" color="green">
+{"type":"idle_notification","from":"capacity-board-specialist","timestamp":"2026-02-16T02:57:34.732Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="board-row-specialist" color="blue">
+{"type":"idle_notification","from":"board-row-specialist","timestamp":"2026-02-16T02:57:41.471Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="board-page-specialist" color="yellow">
+{"type":"idle_notification","from":"board-page-specialist","timestamp":"2026-02-16T02:57:42.133Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="assignment-dialog-specialist" color="purple">
+{"type":"idle_notification","from":"assignment-dialog-specialist","timestamp":"2026-02-16T02:57:48.915Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="board-row-specialist" color="blue">
+{"type":"idle_notification","from":"board-row-specialist","timestamp":"2026-02-16T02:57:51.063Z","idleReason":"available"}
+</teammate-message>
+
+<teammate-message teammate_id="assignment-dialog-specialist" color="purple">
+{"type":"idle_notification","from":"assignment-dialog-specialist","timestamp":"2026-02-16T02:58:00.878Z","idleReason":"available"}
+</teammate-message>
+
+---
+
+remember to always run e2e test after new big feature implemented. utilize chrome dev tool mcp to debug and check for console message than fix any issues
+
+---
+
+<task-notification>
+<task-id>b719bc4</task-id>
+<output-file>/private/tmp/claude-502/-Users-iqbal-projects-capest-planner/tasks/b719bc4.output</output-file>
+<status>completed</status>
+<summary>Background command "Start dev server in background" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-502/-Users-iqbal-projects-capest-planner/tasks/b719bc4.output
+
+---
+
+all cards on board should be draggable to any grid. make the drag drop experiecen smooth like jira board/trello. use external library if needed
+
+---
+
+[Request interrupted by user for tool use]
