@@ -1,0 +1,50 @@
+<teammate-message teammate_id="team-lead">
+You are implementing enhancements to `/pages/board.vue` for a capacity planning application.
+
+Read the current file first, then implement these changes:
+
+1. **Add new state:**
+   - Add `const initialStartWeek = ref<number>(1)` to track the pre-filled start week from drag-drop
+
+2. **Update handleAddAssignment:**
+   - The payload now includes `startWeek` from the week-cell drop
+   - Update the function to extract `startWeek` and set `initialStartWeek.value`
+   ```typescript
+   function handleAddAssignment(payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative) {
+     if ('memberId' in payload && payload.memberId) {
+       selectedInitiative.value = payload.initiative
+       editingAssignmentIndex.value = -1
+       editingAssignment.value = null
+       initialMemberId.value = payload.memberId
+       initialRole.value = payload.role || ''
+       initialStartWeek.value = payload.startWeek || 1  // Add this
+     } else {
+       const initiative = 'initiative' in payload ? payload.initiative : payload
+       selectedInitiative.value = initiative
+       editingAssignmentIndex.value = -1
+       editingAssignment.value = null
+       initialMemberId.value = ''
+       initialRole.value = ''
+       initialStartWeek.value = 1  // Reset to default
+     }
+     showAssignmentDialog.value = true
+   }
+   ```
+
+3. **Update AssignmentDialog component props:**
+   - Add `:initial-start-week="initialStartWeek"` prop
+   - Add `:all-initiatives="initiativesStore.initiatives"` prop
+   - Add `:exclude-initiative-id="selectedInitiative?.id"` prop
+   - Add `:exclude-assignment-index="editingAssignmentIndex"` prop
+
+4. **Reset initialStartWeek after save/delete:**
+   - Reset `initialStartWeek.value = 1` in both `handleSaveAssignment` and `handleDeleteAssignment`
+
+This is a Nuxt.js 3 + Vue 3 + Vuetify 3 project using Composition API with `<script setup lang="ts">`.
+</teammate-message>
+
+---
+
+<teammate-message teammate_id="team-lead">
+{"type":"task_assignment","taskId":"2","subject":"Update board.vue page to pass allInitiatives and handle initialStartWeek","description":"Modify `/pages/board.vue` to:\n1. Add `initialStartWeek` ref\n2. Update `handleAddAssignment` to capture and pass `startWeek`\n3. Pass `allInitiatives` to AssignmentDialog component\n\nKey changes:\n- Add `const initialStartWeek = ref<number>(1)`\n- Update `handleAddAssignment` to extract `startWeek` from payload and set `initialStartWeek`\n- Pass `initial-start-week` prop to AssignmentDialog\n- Pass `all-initiatives` prop (from initiativesStore.initiatives) to AssignmentDialog","assignedBy":"team-lead","timestamp":"2026-02-16T02:56:56.108Z"}
+</teammate-message>
