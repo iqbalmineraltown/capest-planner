@@ -107,12 +107,12 @@ function updateEffort(effort: number | string) {
 
 function getRoleColor(role: string): string {
   const colors: Record<string, string> = {
-    BE: '#1976D2',
-    FE: '#43A047',
-    MOBILE: '#7B1FA2',
-    QA: '#E65100'
+    BE: 'blue',
+    FE: 'green',
+    MOBILE: 'orange',
+    QA: 'purple'
   }
-  return colors[role] || '#616161'
+  return colors[role.toUpperCase()] || 'grey'
 }
 </script>
 

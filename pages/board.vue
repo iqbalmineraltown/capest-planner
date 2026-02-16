@@ -96,6 +96,10 @@
       :quarter="selectedQuarter"
       :initial-member-id="initialMemberId"
       :initial-role="initialRole"
+      :initial-start-week="initialStartWeek"
+      :all-initiatives="initiativesStore.initiatives"
+      :exclude-initiative-id="selectedInitiative?.id"
+      :exclude-assignment-index="editingAssignmentIndex"
       @save="handleSaveAssignment"
       @delete="handleDeleteAssignment"
     />
@@ -126,6 +130,7 @@ const editingAssignment = ref<Assignment | null>(null)
 const editingAssignmentIndex = ref<number>(-1)
 const initialMemberId = ref<string>('')
 const initialRole = ref<string>('')
+const initialStartWeek = ref<number>(1)
 
 // New quarter form
 const currentYear = new Date().getFullYear()
@@ -192,14 +197,15 @@ function openAssignmentDialog(payload: { initiative: Initiative; assignmentIndex
   showAssignmentDialog.value = true
 }
 
-function handleAddAssignment(payload: { initiative: Initiative; memberId?: string; role?: string } | Initiative) {
-  // Handle both old format (just initiative) and new format (with memberId and role)
+function handleAddAssignment(payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative) {
+  // Handle both old format (just initiative) and new format (with memberId, role, and startWeek)
   if ('memberId' in payload && payload.memberId) {
     selectedInitiative.value = payload.initiative
     editingAssignmentIndex.value = -1
     editingAssignment.value = null
     initialMemberId.value = payload.memberId
     initialRole.value = payload.role || ''
+    initialStartWeek.value = payload.startWeek || 1
   } else {
     // Old format - just initiative
     const initiative = 'initiative' in payload ? payload.initiative : payload
@@ -208,6 +214,7 @@ function handleAddAssignment(payload: { initiative: Initiative; memberId?: strin
     editingAssignment.value = null
     initialMemberId.value = ''
     initialRole.value = ''
+    initialStartWeek.value = 1
   }
   showAssignmentDialog.value = true
 }
@@ -234,6 +241,7 @@ function handleSaveAssignment(assignment: Assignment) {
   editingAssignment.value = null
   initialMemberId.value = ''
   initialRole.value = ''
+  initialStartWeek.value = 1
 }
 
 function handleDeleteAssignment() {
@@ -248,6 +256,7 @@ function handleDeleteAssignment() {
   editingAssignment.value = null
   initialMemberId.value = ''
   initialRole.value = ''
+  initialStartWeek.value = 1
 }
 </script>
 

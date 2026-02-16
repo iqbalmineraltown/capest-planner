@@ -90,28 +90,28 @@ defineExpose({
 }
 
 .role-be {
-  background-color: #E3F2FD;
-  color: #1565C0;
+  background-color: var(--color-be-bg);
+  color: var(--color-be);
 }
 
 .role-fe {
-  background-color: #E8F5E9;
-  color: #2E7D32;
+  background-color: var(--color-fe-bg);
+  color: var(--color-fe);
 }
 
 .role-mobile {
-  background-color: #FFF3E0;
-  color: #E65100;
+  background-color: var(--color-mobile-bg);
+  color: var(--color-mobile);
 }
 
 .role-qa {
-  background-color: #F3E5F5;
-  color: #7B1FA2;
+  background-color: var(--color-qa-bg);
+  color: var(--color-qa);
 }
 
 .carryover-cell {
-  border: 2px dashed #FFC107;
-  background-color: #FFFDE7;
+  border: 2px dashed var(--color-carryover);
+  background-color: var(--color-carryover-bg);
 }
 
 .cell-content {
@@ -136,6 +136,6 @@ defineExpose({
 }
 
 .carryover-icon {
-  color: #FF8F00;
+  color: var(--color-carryover);
 }
 </style>

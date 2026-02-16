@@ -326,7 +326,7 @@ function getRoleColor(role: string): string {
 .initiative-header {
   position: sticky;
   left: 0;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   z-index: 2;
 }
 
@@ -336,13 +336,13 @@ function getRoleColor(role: string): string {
 }
 
 .carryover-week {
-  background-color: #fff8e1;
+  background-color: var(--color-carryover-bg);
 }
 
 .actions-header {
   position: sticky;
   right: 0;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   z-index: 2;
 }
 
@@ -351,7 +351,7 @@ function getRoleColor(role: string): string {
 }
 
 :deep(thead th) {
-  background: #f5f5f5;
+  background: rgb(var(--v-theme-surface-variant));
   font-weight: 600;
   position: sticky;
   top: 0;

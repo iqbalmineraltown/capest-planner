@@ -194,3 +194,170 @@ export function getAvailableMembersForRole(
     })
     .sort((a, b) => b.remainingCapacity - a.remainingCapacity)
 }
+
+/**
+ * Check week conflicts across all initiatives for a member
+ * Returns conflicting weeks and which initiatives they belong to
+ */
+export function checkWeekConflicts(
+  memberId: string,
+  startWeek: number,
+  weeksAllocated: number,
+  initiatives: Initiative[],
+  quarterId: string,
+  excludeInitiativeId?: string,
+  excludeAssignmentIndex?: number
+): {
+  hasConflict: boolean
+  conflictingWeeks: number[]
+  conflicts: Array<{ initiativeId: string; initiativeName: string; weeks: number[] }>
+} {
+  const newWeeks = Array.from({ length: weeksAllocated }, (_, i) => startWeek + i)
+  const conflicts: Array<{ initiativeId: string; initiativeName: string; weeks: number[] }> = []
+  const conflictingWeeks: number[] = []
+
+  for (const initiative of initiatives) {
+    if (initiative.quarter !== quarterId) continue
+    if (excludeInitiativeId && initiative.id === excludeInitiativeId) continue
+
+    for (let i = 0; i < initiative.assignments.length; i++) {
+      // Skip the assignment being edited
+      if (excludeInitiativeId && initiative.id === excludeInitiativeId && i === excludeAssignmentIndex) {
+        continue
+      }
+
+      const assignment = initiative.assignments[i]
+      if (assignment.memberId !== memberId) continue
+
+      const assignedWeeks = Array.from(
+        { length: assignment.weeksAllocated },
+        (_, j) => assignment.startWeek + j
+      )
+
+      const overlap = newWeeks.filter((week) => assignedWeeks.includes(week))
+      if (overlap.length > 0) {
+        conflicts.push({
+          initiativeId: initiative.id,
+          initiativeName: initiative.name,
+          weeks: overlap,
+        })
+        conflictingWeeks.push(...overlap)
+      }
+    }
+  }
+
+  return {
+    hasConflict: conflicts.length > 0,
+    conflictingWeeks: [...new Set(conflictingWeeks)].sort((a, b) => a - b),
+    conflicts,
+  }
+}
+
+/**
+ * Get initiative warnings (over-capacity members, unfilled roles)
+ */
+export function getInitiativeWarnings(
+  initiative: Initiative,
+  members: TeamMember[],
+  allInitiatives: Initiative[],
+  quarterId: string
+): {
+  hasWarnings: boolean
+  overCapacityMembers: string[]
+  unfilledRoles: Array<{ role: RoleType; required: number; assigned: number }>
+  weekConflicts: Array<{ memberId: string; memberName: string; conflicts: string[] }>
+} {
+  const overCapacityMembers: string[] = []
+  const unfilledRoles: Array<{ role: RoleType; required: number; assigned: number }> = []
+  const weekConflicts: Array<{ memberId: string; memberName: string; conflicts: string[] }> = []
+
+  // Check for over-capacity members
+  for (const assignment of initiative.assignments) {
+    const member = members.find((m) => m.id === assignment.memberId)
+    if (!member) continue
+
+    const capacity = calculateMemberQuarterCapacity(member, allInitiatives, quarterId)
+    if (capacity.remaining < 0 && !overCapacityMembers.includes(member.name)) {
+      overCapacityMembers.push(member.name)
+    }
+
+    // Check for week conflicts
+    const conflictResult = checkWeekConflicts(
+      assignment.memberId,
+      assignment.startWeek,
+      assignment.weeksAllocated,
+      allInitiatives,
+      quarterId,
+      initiative.id
+    )
+
+    if (conflictResult.hasConflict) {
+      const conflictDescriptions = conflictResult.conflicts.map(
+        (c) => `${c.initiativeName} (Week ${c.weeks.join(', ')})`
+      )
+      weekConflicts.push({
+        memberId: assignment.memberId,
+        memberName: member.name,
+        conflicts: conflictDescriptions,
+      })
+    }
+  }
+
+  // Check for unfilled roles
+  for (const requirement of initiative.roleRequirements) {
+    const assignedEffort = initiative.assignments
+      .filter((a) => a.role === requirement.role)
+      .reduce((sum, a) => sum + a.weeksAllocated, 0)
+
+    if (assignedEffort < requirement.effort) {
+      unfilledRoles.push({
+        role: requirement.role,
+        required: requirement.effort,
+        assigned: assignedEffort,
+      })
+    }
+  }
+
+  const hasWarnings =
+    overCapacityMembers.length > 0 || unfilledRoles.length > 0 || weekConflicts.length > 0
+
+  return {
+    hasWarnings,
+    overCapacityMembers,
+    unfilledRoles,
+    weekConflicts,
+  }
+}
+
+/**
+ * Get role fulfillment progress for an initiative
+ */
+export function getRoleFulfillment(
+  initiative: Initiative
+): Array<{
+  role: RoleType
+  required: number
+  assigned: number
+  percentage: number
+  assignees: Array<{ memberId: string; memberName?: string; weeksAllocated: number }>
+}> {
+  return initiative.roleRequirements.map((requirement) => {
+    const relevantAssignments = initiative.assignments.filter((a) => a.role === requirement.role)
+    const assignedEffort = relevantAssignments.reduce((sum, a) => sum + a.weeksAllocated, 0)
+
+    const assignees = relevantAssignments.map((a) => ({
+      memberId: a.memberId,
+      weeksAllocated: a.weeksAllocated,
+    }))
+
+    const percentage = requirement.effort > 0 ? Math.min(100, (assignedEffort / requirement.effort) * 100) : 0
+
+    return {
+      role: requirement.role,
+      required: requirement.effort,
+      assigned: assignedEffort,
+      percentage,
+      assignees,
+    }
+  })
+}

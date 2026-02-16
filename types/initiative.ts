@@ -94,3 +94,24 @@ export interface QuarterCapacitySummary {
     effort: number
   }>
 }
+
+/**
+ * Warnings for an initiative
+ */
+export interface InitiativeWarnings {
+  hasWarnings: boolean
+  overCapacityMembers: string[]
+  unfilledRoles: Array<{ role: RoleType; required: number; assigned: number }>
+  weekConflicts: Array<{ memberId: string; memberName: string; conflicts: string[] }>
+}
+
+/**
+ * Role fulfillment progress for an initiative
+ */
+export interface RoleFulfillment {
+  role: RoleType
+  required: number
+  assigned: number
+  percentage: number
+  assignees: Array<{ memberId: string; memberName?: string; weeksAllocated: number }>
+}

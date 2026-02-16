@@ -13,6 +13,22 @@
       <v-divider />
 
       <v-card-text class="pt-4">
+        <!-- Week conflict alert -->
+        <v-alert
+          v-if="weekConflict.hasConflict"
+          type="error"
+          density="compact"
+          variant="tonal"
+          class="mb-3"
+        >
+          <strong>Week conflict detected!</strong> This member is already assigned during:
+          <ul class="mt-1 mb-0">
+            <li v-for="conflict in weekConflict.conflicts" :key="conflict.initiativeId">
+              <strong>Week {{ conflict.weeks.join(', ') }}</strong>: {{ conflict.initiativeName }}
+            </li>
+          </ul>
+        </v-alert>
+
         <v-form ref="formRef" v-model="isFormValid">
           <!-- Member selection -->
           <v-select
@@ -78,13 +94,15 @@
             class="mb-3"
           />
 
-          <!-- Parallel toggle -->
-          <v-switch
-            v-model="formData.isParallel"
-            label="Parallel with other assignments"
-            color="primary"
-            hide-details
-          />
+          <!-- Parallel assignment info -->
+          <v-alert
+            type="info"
+            density="compact"
+            variant="tonal"
+            class="mt-3"
+          >
+            Assignments can run parallel with others by default. Adjust start week to overlap multiple initiatives.
+          </v-alert>
 
           <!-- Carryover info -->
           <v-alert
@@ -117,7 +135,7 @@
         <v-btn
           color="primary"
           variant="flat"
-          :disabled="!isFormValid"
+          :disabled="!isFormValid || weekConflict.hasConflict"
           @click="handleSave"
         >
           {{ isNew ? 'Add' : 'Save' }}
@@ -131,7 +149,7 @@
 import { ref, computed, watch } from 'vue'
 import type { Initiative, Assignment, TeamMember, QuarterConfig } from '~/types'
 import { useRolesStore } from '~/stores/roles'
-import { checkCarryOver } from '~/utils/capacityCalculator'
+import { checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
 
 const props = defineProps<{
   modelValue: boolean
@@ -139,8 +157,12 @@ const props = defineProps<{
   assignment: Assignment | null
   members: TeamMember[]
   quarter: QuarterConfig | undefined
+  allInitiatives: Initiative[]
   initialMemberId?: string
   initialRole?: string
+  initialStartWeek?: number
+  excludeInitiativeId?: string
+  excludeAssignmentIndex?: number
 }>()
 
 const emit = defineEmits<{
@@ -158,7 +180,7 @@ const formData = ref({
   role: '',
   weeksAllocated: 1,
   startWeek: 1,
-  isParallel: false,
+  isParallel: true,
 })
 
 const isNew = computed(() => !props.assignment)
@@ -191,6 +213,21 @@ const carriedWeeks = computed(() => {
   return result.carriedWeeks
 })
 
+const weekConflict = computed(() => {
+  if (!props.allInitiatives || !props.quarter || !formData.value.memberId) {
+    return { hasConflict: false, conflictingWeeks: [], conflicts: [] }
+  }
+  return checkWeekConflicts(
+    formData.value.memberId,
+    formData.value.startWeek,
+    formData.value.weeksAllocated,
+    props.allInitiatives,
+    props.quarter.id,
+    props.excludeInitiativeId,
+    props.excludeAssignmentIndex
+  )
+})
+
 // Initialize form when assignment changes
 watch(
   () => props.assignment,
@@ -212,14 +249,17 @@ watch(
 
 // Pre-fill from initial values (drag-and-drop)
 watch(
-  () => [props.modelValue, props.initialMemberId, props.initialRole],
-  ([isOpen, memberId, role]) => {
+  () => [props.modelValue, props.initialMemberId, props.initialRole, props.initialStartWeek],
+  ([isOpen, memberId, role, startWeek]) => {
     if (isOpen && isNew.value) {
       if (memberId) {
         formData.value.memberId = memberId as string
       }
       if (role) {
         formData.value.role = role as string
+      }
+      if (startWeek) {
+        formData.value.startWeek = startWeek as number
       }
     }
   },
@@ -242,7 +282,7 @@ function resetForm() {
     role: '',
     weeksAllocated: 1,
     startWeek: 1,
-    isParallel: false,
+    isParallel: true,
   }
 }
 

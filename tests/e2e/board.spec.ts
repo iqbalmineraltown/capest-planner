@@ -28,8 +28,8 @@ test.describe('Capacity Board Page', () => {
     // Should show capacity allocation section - use exact match to avoid strict mode
     await expect(page.locator('span:has-text("Capacity Allocation")').first()).toBeVisible({ timeout: 10000 })
 
-    // Should show initiatives count
-    await expect(page.locator('text=initiatives')).toBeVisible()
+    // Should show initiatives count chip (e.g., "5 initiatives")
+    await expect(page.locator('.v-chip:has-text("initiatives")').first()).toBeVisible()
   })
 
   test('should display quarter selector', async ({ page }) => {

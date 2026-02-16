@@ -3,7 +3,6 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     app
-    color="grey-lighten-4"
     width="260"
   >
     <v-list nav density="comfortable">

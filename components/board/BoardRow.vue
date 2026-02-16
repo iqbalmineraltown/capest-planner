@@ -351,19 +351,19 @@ function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
 }
 
 .board-row:hover {
-  background-color: #fafafa;
+  background-color: rgb(var(--v-theme-surface-variant));
 }
 
 .board-row.drag-over {
-  background-color: #e3f2fd !important;
+  background-color: rgb(var(--v-theme-primary-lighten-5)) !important;
 }
 
 .initiative-cell {
   position: sticky;
   left: 0;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   z-index: 1;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid rgb(var(--v-theme-border));
 }
 
 .week-cell {
@@ -373,13 +373,13 @@ function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
 }
 
 .week-cell.drag-over-week {
-  background-color: #c5e1f5 !important;
-  outline: 2px dashed #1976d2;
+  background-color: rgb(var(--v-theme-primary-lighten-4)) !important;
+  outline: 2px dashed rgb(var(--v-theme-primary));
   outline-offset: -2px;
 }
 
 .carryover-week {
-  background-color: #fffde7;
+  background-color: var(--color-carryover-bg);
 }
 
 .assignments-container {
@@ -392,18 +392,18 @@ function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
 .actions-cell {
   position: sticky;
   right: 0;
-  background: white;
+  background: rgb(var(--v-theme-surface));
   z-index: 1;
-  border-left: 1px solid #e0e0e0;
+  border-left: 1px solid rgb(var(--v-theme-border));
 }
 
 .drop-zone-indicator {
   display: flex;
   align-items: center;
   padding: 4px 8px;
-  background-color: #e3f2fd;
+  background-color: rgb(var(--v-theme-primary-lighten-5));
   border-radius: 4px;
-  border: 1px dashed #1976d2;
+  border: 1px dashed rgb(var(--v-theme-primary));
 }
 
 .role-fulfillment {
