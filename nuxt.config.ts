@@ -3,6 +3,9 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
 
+  // Static SPA mode for Firebase Hosting
+  ssr: false,
+
   css: [
     '@mdi/font/css/materialdesignicons.min.css',
     '~/assets/styles/main.scss',

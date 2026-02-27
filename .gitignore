@@ -61,3 +61,4 @@ coverage
 # OS generated files
 .Spotlight-V100
 .Trashes
+.firebase/
