@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import type { TeamMember } from '~/types'
 import { generateMemberId } from '~/utils/idGenerator'
+import { useInitiativesStore } from '~/stores/initiatives'
 
 const STORAGE_KEY = 'capest-members'
 
@@ -68,6 +69,18 @@ export const useMembersStore = defineStore('members', () => {
   function removeMember(id: string): boolean {
     const index = members.value.findIndex((m) => m.id === id)
     if (index === -1) return false
+
+    // Cascade: remove this member's assignments from all initiatives
+    const initiativesStore = useInitiativesStore()
+    for (const initiative of initiativesStore.initiatives) {
+      const assignmentIndices = initiative.assignments
+        .map((a, i) => (a.memberId === id ? i : -1))
+        .filter((i) => i !== -1)
+        .reverse() // Remove from end to preserve indices
+      for (const idx of assignmentIndices) {
+        initiativesStore.removeAssignment(initiative.id, idx)
+      }
+    }
 
     members.value.splice(index, 1)
     return true

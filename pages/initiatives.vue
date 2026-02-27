@@ -107,9 +107,11 @@ import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import InitiativeList from '~/components/initiatives/InitiativeList.vue'
 import InitiativeForm from '~/components/initiatives/InitiativeForm.vue'
+import { useToast } from '~/composables/useToast'
 
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
+const toast = useToast()
 
 const showFormDialog = ref(false)
 const editingInitiative = ref<Initiative | undefined>(undefined)
@@ -145,8 +147,10 @@ function closeFormDialog() {
 }
 
 function handleSave(initiative: Initiative) {
+  const isEdit = !!editingInitiative.value
   closeFormDialog()
   selectedInitiative.value = initiative
+  toast.success(isEdit ? 'Initiative updated successfully' : 'Initiative added successfully')
 }
 
 function handleDelete(id: string) {
@@ -154,6 +158,7 @@ function handleDelete(id: string) {
   if (selectedInitiative.value?.id === id) {
     selectedInitiative.value = null
   }
+  toast.success('Initiative deleted successfully')
 }
 
 function handleSelect(initiative: Initiative) {

@@ -10,6 +10,7 @@
     </v-main>
 
     <ConfirmDialog />
+    <AppSnackbar />
   </v-app>
 </template>
 
@@ -20,6 +21,7 @@ import { useAppTheme } from '~/composables/useAppTheme'
 import AppDrawer from '~/components/common/AppDrawer.vue'
 import AppHeader from '~/components/common/AppHeader.vue'
 import ConfirmDialog from '~/components/common/ConfirmDialog.vue'
+import AppSnackbar from '~/components/common/AppSnackbar.vue'
 
 const drawer = ref(true)
 const { seedDefaultData } = useSeedData()

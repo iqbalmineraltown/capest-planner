@@ -119,10 +119,12 @@ import { calculateQuarterCapacitySummary } from '~/utils/capacityCalculator'
 import CapacityBoard from '~/components/board/CapacityBoard.vue'
 import QuarterSummary from '~/components/board/QuarterSummary.vue'
 import AssignmentDialog from '~/components/board/AssignmentDialog.vue'
+import { useToast } from '~/composables/useToast'
 
 const quartersStore = useQuartersStore()
 const initiativesStore = useInitiativesStore()
 const membersStore = useMembersStore()
+const toast = useToast()
 
 // State
 const selectedQuarterId = ref<string>(quartersStore.currentQuarter?.id || '')
@@ -167,7 +169,10 @@ watch(
 // Actions
 function handleAddQuarter() {
   const q = quartersStore.addQuarter(newQuarterYear.value, newQuarterNumber.value)
-  if (q) selectedQuarterId.value = q.id
+  if (q) {
+    selectedQuarterId.value = q.id
+    toast.success(`Quarter ${q.label} added`)
+  }
   showAddQuarterDialog.value = false
 }
 
@@ -205,13 +210,15 @@ function handleAddAssignment(
 function handleSaveAssignment(assignment: Assignment) {
   if (!selectedInitiative.value) return
 
-  if (editingAssignmentIndex.value >= 0) {
+  const isEdit = editingAssignmentIndex.value >= 0
+  if (isEdit) {
     initiativesStore.updateAssignment(selectedInitiative.value.id, editingAssignmentIndex.value, assignment)
   } else {
     initiativesStore.addAssignment(selectedInitiative.value.id, assignment)
     membersStore.assignToInitiative(assignment.memberId, selectedInitiative.value.id)
   }
 
+  toast.success(isEdit ? 'Assignment updated' : 'Assignment added')
   showAssignmentDialog.value = false
   selectedInitiative.value = null
   editingAssignment.value = null
@@ -227,6 +234,7 @@ function handleDeleteAssignment() {
   membersStore.unassignFromInitiative(a.memberId, selectedInitiative.value.id)
   initiativesStore.removeAssignment(selectedInitiative.value.id, editingAssignmentIndex.value)
 
+  toast.success('Assignment removed')
   showAssignmentDialog.value = false
   selectedInitiative.value = null
   editingAssignment.value = null

@@ -86,7 +86,7 @@ interface Props {
   index: number
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update': [requirement: RoleRequirement]

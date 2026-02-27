@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import type { Initiative, Assignment, RoleRequirement } from '~/types'
 import { generateInitiativeId } from '~/utils/idGenerator'
+import { useMembersStore } from '~/stores/members'
 
 const STORAGE_KEY = 'capest-initiatives'
 
@@ -77,6 +78,15 @@ export const useInitiativesStore = defineStore('initiatives', () => {
   function removeInitiative(id: string): boolean {
     const index = initiatives.value.findIndex((i) => i.id === id)
     if (index === -1) return false
+
+    // Cascade: unassign this initiative from all members
+    const membersStore = useMembersStore()
+    for (const member of membersStore.members) {
+      const assignIdx = member.assignedInitiatives.indexOf(id)
+      if (assignIdx > -1) {
+        member.assignedInitiatives.splice(assignIdx, 1)
+      }
+    }
 
     initiatives.value.splice(index, 1)
     return true

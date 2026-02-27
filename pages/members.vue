@@ -53,9 +53,56 @@
       </v-col>
     </v-row>
 
+    <!-- Search/filter bar -->
+    <v-card variant="outlined" class="mb-4 pa-4">
+      <v-row align="center" dense>
+        <v-col cols="12" sm="5">
+          <v-text-field
+            v-model="searchQuery"
+            prepend-inner-icon="mdi-magnify"
+            label="Search members"
+            placeholder="Type a name..."
+            clearable
+            hide-details
+            density="comfortable"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" sm="5">
+          <v-select
+            v-model="selectedRoles"
+            :items="rolesStore.roles"
+            label="Filter by role"
+            multiple
+            chips
+            closable-chips
+            clearable
+            hide-details
+            density="comfortable"
+            variant="outlined"
+          />
+        </v-col>
+        <v-col cols="12" sm="2" class="d-flex align-center justify-end">
+          <v-btn
+            v-if="hasActiveFilters"
+            variant="text"
+            color="secondary"
+            size="small"
+            prepend-icon="mdi-filter-off"
+            @click="clearFilters"
+          >
+            Clear filters
+          </v-btn>
+        </v-col>
+      </v-row>
+      <div v-if="hasActiveFilters" class="text-caption text-grey-darken-1 mt-2">
+        Showing {{ filteredMembers.length }} of {{ membersStore.memberCount }} members
+      </div>
+    </v-card>
+
     <!-- Members list -->
     <MemberList
-      :members="membersStore.members"
+      :members="filteredMembers"
       :loading="loading"
       edit-mode
       @edit="openEditDialog"
@@ -114,12 +161,45 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMembersStore } from '~/stores/members'
+import { useRolesStore } from '~/stores/roles'
+import { useToast } from '~/composables/useToast'
 import type { TeamMember } from '~/types'
 
 const membersStore = useMembersStore()
+const rolesStore = useRolesStore()
+const toast = useToast()
 
 // State
 const loading = ref(false)
+const searchQuery = ref('')
+const selectedRoles = ref<string[]>([])
+
+// Filters
+const hasActiveFilters = computed(() =>
+  (searchQuery.value?.trim().length ?? 0) > 0 || selectedRoles.value.length > 0
+)
+
+const filteredMembers = computed(() => {
+  let result = membersStore.members
+
+  const query = searchQuery.value?.trim().toLowerCase()
+  if (query) {
+    result = result.filter((m) => m.name.toLowerCase().includes(query))
+  }
+
+  if (selectedRoles.value.length > 0) {
+    result = result.filter((m) =>
+      m.roles.some((role) => selectedRoles.value.includes(role))
+    )
+  }
+
+  return result
+})
+
+function clearFilters() {
+  searchQuery.value = ''
+  selectedRoles.value = []
+}
 const dialogOpen = ref(false)
 const editingMemberId = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
@@ -154,8 +234,10 @@ function closeDialog() {
 
 // Handle member form submission
 function handleMemberSubmit(member: TeamMember) {
+  const isEdit = !!editingMemberId.value
   dialogOpen.value = false
   editingMemberId.value = null
+  toast.success(isEdit ? 'Member updated successfully' : 'Member added successfully')
 }
 
 // Confirm delete
@@ -170,9 +252,11 @@ function confirmDelete(id: string) {
 // Handle delete
 function handleDelete() {
   if (memberToDelete.value) {
+    const name = memberToDelete.value.name
     membersStore.removeMember(memberToDelete.value.id)
     memberToDelete.value = null
     deleteDialogOpen.value = false
+    toast.success(`${name} deleted successfully`)
   }
 }
 </script>

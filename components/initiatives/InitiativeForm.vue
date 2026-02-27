@@ -47,19 +47,20 @@
         <v-select
           v-model="formData.quarter"
           :items="availableQuarters"
+          item-title="label"
+          item-value="id"
           label="Quarter"
           density="comfortable"
           variant="outlined"
           :rules="[rules.required]"
           required
-          return-object
           class="mb-4"
         >
           <template #prepend-inner>
             <v-icon color="primary">mdi-calendar-outline</v-icon>
           </template>
-          <template #item="{ item, props }">
-            <v-list-item v-bind="props">
+          <template #item="{ item, props: itemProps }">
+            <v-list-item v-bind="itemProps">
               <v-list-item-title>
                 <v-chip size="small" color="primary" variant="tonal">
                   {{ item.raw.label }}
