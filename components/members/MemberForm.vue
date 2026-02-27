@@ -121,7 +121,7 @@ const formData = ref<{
 // Load member data for editing
 watch(() => props.memberId, (newId) => {
   if (newId) {
-    const member = membersStore.getMemberById.value(newId)
+    const member = membersStore.getMemberById(newId)
     if (member) {
       formData.value = {
         name: member.name,
@@ -196,7 +196,7 @@ async function handleSubmit() {
         roles: formData.value.roles,
         availability: formData.value.availability,
       })
-      member = membersStore.getMemberById.value(props.memberId)!
+      member = membersStore.getMemberById(props.memberId)!
     } else {
       // Create new member
       member = membersStore.addMember({

@@ -242,7 +242,7 @@ function handleMemberSubmit(member: TeamMember) {
 
 // Confirm delete
 function confirmDelete(id: string) {
-  const member = membersStore.getMemberById.value(id)
+  const member = membersStore.getMemberById(id)
   if (member) {
     memberToDelete.value = member
     deleteDialogOpen.value = true

@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue'
+import { computed } from 'vue'
 import type { RoleRequirement } from '~/types'
 import { useRolesStore } from '~/stores/roles'
 
@@ -94,7 +94,7 @@ const emit = defineEmits<{
 }>()
 
 const rolesStore = useRolesStore()
-const availableRoles = ref(rolesStore.roles)
+const availableRoles = computed(() => rolesStore.roles)
 
 function updateRole(role: string) {
   emit('update', { role, effort: props.requirement.effort })

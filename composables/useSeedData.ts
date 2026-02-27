@@ -8,6 +8,8 @@ import { getCurrentQuarterId } from '~/utils/dateUtils'
  * Seed default placeholder data for demo purposes
  * One Piece themed - Straw Hat Pirates!
  */
+const SEED_FLAG_KEY = 'capest-seeded'
+
 export function useSeedData() {
   const membersStore = useMembersStore()
   const initiativesStore = useInitiativesStore()
@@ -17,8 +19,9 @@ export function useSeedData() {
   const isSeeded = ref(false)
 
   function seedDefaultData() {
-    // Only seed once
+    // Only seed once ever (persisted across reloads)
     if (isSeeded.value) return
+    if (typeof window !== 'undefined' && localStorage.getItem(SEED_FLAG_KEY)) return
     if (membersStore.memberCount > 0) return // Don't seed if data exists
 
     const currentQuarterId = getCurrentQuarterId()
@@ -134,6 +137,9 @@ export function useSeedData() {
     }
 
     isSeeded.value = true
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SEED_FLAG_KEY, 'true')
+    }
   }
 
   function clearAllData() {
@@ -142,6 +148,7 @@ export function useSeedData() {
     quartersStore.clearAll()
     rolesStore.resetRoles()
     isSeeded.value = false
+    // Note: we do NOT remove the seed flag — data was intentionally cleared by the user
   }
 
   return {

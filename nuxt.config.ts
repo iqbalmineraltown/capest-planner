@@ -16,6 +16,10 @@ export default defineNuxtConfig({
     'vuetify-nuxt-module',
   ],
 
+  components: [
+    { path: '~/components', pathPrefix: false },
+  ],
+
   pinia: {
     storesDirs: ['./stores/**'],
   },
