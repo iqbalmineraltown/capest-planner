@@ -151,9 +151,27 @@ export function useSeedData() {
     // Note: we do NOT remove the seed flag — data was intentionally cleared by the user
   }
 
+  function resetWithSampleData() {
+    // Clear everything first
+    membersStore.clearAll()
+    initiativesStore.clearAll()
+    quartersStore.clearAll()
+    rolesStore.resetRoles()
+    isSeeded.value = false
+
+    // Remove seed flag so seedDefaultData will run
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(SEED_FLAG_KEY)
+    }
+
+    // Re-seed
+    seedDefaultData()
+  }
+
   return {
     seedDefaultData,
     clearAllData,
+    resetWithSampleData,
     isSeeded,
   }
 }
