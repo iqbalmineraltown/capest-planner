@@ -1,154 +1,141 @@
 <template>
-  <tr
-    class="board-row"
-    :class="{ 'drag-over': isDragOver }"
-    @dragover.prevent="handleDragOver"
-    @dragleave="handleDragLeave"
-    @drop.prevent="handleDrop"
-  >
-    <!-- Initiative name cell -->
-    <td class="initiative-cell">
-      <div class="d-flex flex-column">
-        <div class="d-flex align-center">
-          <div class="text-subtitle-2 font-weight-medium">
-            {{ initiative.name }}
-          </div>
-          <v-tooltip
-            v-if="warnings.hasWarnings"
-            location="top"
-            :max-width="300"
-          >
-            <template #activator="{ props: tooltipProps }">
-              <v-chip
-                v-bind="tooltipProps"
-                size="x-small"
-                color="warning"
-                variant="tonal"
-                class="ml-2"
-              >
-                <v-icon start size="small">mdi-alert</v-icon>
-                {{ warnings.overCapacityMembers.length + warnings.unfilledRoles.length + warnings.weekConflicts.length }}
-              </v-chip>
-            </template>
-            <div class="warning-tooltip">
-              <div v-if="warnings.overCapacityMembers.length > 0" class="mb-2">
-                <strong>Over-capacity members:</strong>
-                <ul class="my-1">
-                  <li v-for="member in warnings.overCapacityMembers" :key="member">
-                    {{ member }}
-                  </li>
-                </ul>
-              </div>
-              <div v-if="warnings.unfilledRoles.length > 0" class="mb-2">
-                <strong>Unfilled roles:</strong>
-                <ul class="my-1">
-                  <li v-for="role in warnings.unfilledRoles" :key="role.role">
-                    {{ role.role }}: {{ role.assigned }}/{{ role.required }}w
-                  </li>
-                </ul>
-              </div>
-              <div v-if="warnings.weekConflicts.length > 0">
-                <strong>Week conflicts:</strong>
-                <ul class="my-1">
-                  <li v-for="conflict in warnings.weekConflicts" :key="conflict.memberId">
-                    {{ conflict.memberName }}:
-                    <div v-for="c in conflict.conflicts" :key="c" class="text-caption">
-                      {{ c }}
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </v-tooltip>
-        </div>
-        <div class="d-flex flex-wrap ga-1 mt-1">
-          <div
-            v-for="fulfillment in roleFulfillment"
-            :key="fulfillment.role"
-            class="role-fulfillment"
-          >
+  <div class="board-swimlane" :class="{ 'board-swimlane--collapsed': isCollapsed, 'board-swimlane--drag-active': isDragging }">
+    <!-- Swimlane Header -->
+    <div class="swimlane-header" @click="isCollapsed = !isCollapsed">
+      <div class="swimlane-header__left">
+        <v-btn
+          icon
+          size="x-small"
+          variant="text"
+          class="swimlane-header__toggle"
+        >
+          <v-icon size="18">
+            {{ isCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-down' }}
+          </v-icon>
+        </v-btn>
+        <span class="swimlane-header__title">{{ initiative.name }}</span>
+
+        <!-- Warning badge -->
+        <v-tooltip v-if="warnings.hasWarnings" location="top" :max-width="300">
+          <template #activator="{ props: tp }">
             <v-chip
-              :color="getRoleColor(fulfillment.role)"
+              v-bind="tp"
               size="x-small"
-              variant="tonal"
+              color="warning"
+              variant="flat"
+              class="swimlane-header__badge"
             >
-              {{ fulfillment.role }}
+              <v-icon start size="12">mdi-alert</v-icon>
+              {{ warningCount }}
             </v-chip>
-            <v-progress-linear
-              :model-value="fulfillment.percentage"
-              :color="getProgressColor(fulfillment.percentage)"
-              height="4"
-              rounded
-              class="role-progress"
-            />
-            <span class="text-caption role-progress-text">
-              {{ fulfillment.assigned }}/{{ fulfillment.required }}w
-            </span>
+          </template>
+          <div class="swimlane-tooltip">
+            <div v-if="warnings.overCapacityMembers.length" class="mb-1">
+              <strong>Over-capacity:</strong>
+              <span v-for="m in warnings.overCapacityMembers" :key="m" class="d-block text-caption">• {{ m }}</span>
+            </div>
+            <div v-if="warnings.unfilledRoles.length" class="mb-1">
+              <strong>Unfilled roles:</strong>
+              <span v-for="r in warnings.unfilledRoles" :key="r.role" class="d-block text-caption">
+                • {{ r.role }}: {{ r.assigned }}/{{ r.required }}w
+              </span>
+            </div>
           </div>
-        </div>
+        </v-tooltip>
+
+        <!-- Carryover indicator -->
         <v-chip
           v-if="initiative.carriesOverTo"
           size="x-small"
           color="warning"
           variant="outlined"
-          class="mt-1"
-          style="width: fit-content"
+          class="ml-2"
         >
-          <v-icon start size="small">mdi-arrow-right</v-icon>
-          Carries to {{ initiative.carriesOverTo }}
+          <v-icon start size="12">mdi-arrow-right</v-icon>
+          → {{ initiative.carriesOverTo }}
         </v-chip>
-        <!-- Drop zone indicator -->
-        <div v-if="isDragOver" class="drop-zone-indicator mt-2">
-          <v-icon size="small" color="primary">mdi-plus-circle</v-icon>
-          <span class="text-caption text-primary ml-1">Drop to assign</span>
+      </div>
+
+      <!-- Role fulfillment pills -->
+      <div class="swimlane-header__roles">
+        <div
+          v-for="f in roleFulfillment"
+          :key="f.role"
+          class="role-pill"
+          :style="{ '--role-color': getRoleHex(f.role) }"
+        >
+          <span class="role-pill__label">{{ f.role }}</span>
+          <span class="role-pill__value">{{ f.assigned }}/{{ f.required }}w</span>
+          <div class="role-pill__bar">
+            <div
+              class="role-pill__fill"
+              :style="{ width: Math.min(100, f.percentage) + '%' }"
+            />
+          </div>
         </div>
       </div>
-    </td>
 
-    <!-- Week cells -->
-    <td
-      v-for="week in quarter?.totalWeeks || 13"
-      :key="week"
-      class="week-cell"
-      :class="{
-        'carryover-week': week > (quarter?.totalWeeks || 13) - 2,
-        'drag-over-week': isDragOverWeek === week
-      }"
-      @dragover.prevent="handleWeekDragOver($event, week)"
-      @dragleave="handleWeekDragLeave"
-      @drop.prevent="handleWeekDrop($event, week)"
-    >
-      <div class="assignments-container">
-        <AssignmentCell
-          v-for="(assignment, index) in getAssignmentsForWeek(week)"
-          :key="index"
-          :assignment="assignment"
-          :member="getMember(assignment.memberId)"
-          :is-carryover="isAssignmentCarryover(assignment, week)"
-          :is-dragging="isDragging && dragState?.type === 'assignment' && (dragState?.data as Assignment)?.memberId === assignment.memberId && (dragState?.data as Assignment)?.startWeek === assignment.startWeek"
-          draggable="true"
-          @click="$emit('edit-assignment', { initiative, assignmentIndex: getAssignmentIndex(assignment) })"
-          @dragstart="handleAssignmentDragStart($event, assignment)"
-        />
-      </div>
-    </td>
-
-    <!-- Actions cell -->
-    <td class="actions-cell">
+      <!-- Add assignment button -->
       <v-btn
-        icon="mdi-plus"
+        icon
         size="small"
         variant="text"
         color="primary"
+        class="swimlane-header__add"
         data-testid="add-assignment-btn"
-        @click="$emit('add-assignment', initiative)"
-      />
-    </td>
-  </tr>
+        @click.stop="$emit('add-assignment', initiative)"
+      >
+        <v-icon size="20">mdi-plus</v-icon>
+      </v-btn>
+    </div>
+
+    <!-- Week columns (kanban) -->
+    <div v-show="!isCollapsed" class="swimlane-board">
+      <!-- Week column headers (inside swimlane for alignment) -->
+      <div class="swimlane-weeks">
+        <div
+          v-for="week in totalWeeks"
+          :key="week"
+          class="week-column"
+          :class="{
+            'week-column--drop-target': isDropTargetWeek(week),
+            'week-column--carryover': week > totalWeeks - 2,
+          }"
+          @dragenter="handleWeekDragEnter($event, week)"
+          @dragover="handleWeekDragOver($event, week)"
+          @dragleave="handleWeekDragLeave($event, week)"
+          @drop="handleWeekDrop($event, week)"
+        >
+          <!-- Week label inside column -->
+          <div class="week-column__label">W{{ week }}</div>
+
+          <!-- Drop placeholder -->
+          <div v-if="isDropTargetWeek(week)" class="week-column__drop-placeholder">
+            <v-icon size="16" color="primary">mdi-plus-circle</v-icon>
+            <span class="week-column__drop-text">Drop here</span>
+          </div>
+
+          <!-- Assignment cards -->
+          <AssignmentCell
+            v-for="(assignment, idx) in getAssignmentsForWeek(week)"
+            :key="`${assignment.memberId}-${assignment.startWeek}-${idx}`"
+            :assignment="assignment"
+            :member="getMember(assignment.memberId)"
+            :is-carryover="isAssignmentCarryover(assignment, week)"
+            :is-dragging="isCardDragging(assignment)"
+            draggable="true"
+            @click="$emit('edit-assignment', { initiative, assignmentIndex: getAssignmentIndex(assignment) })"
+            @dragstart="handleAssignmentDragStart($event, assignment)"
+            @dragend="handleDragEnd"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember, Assignment } from '~/types'
 import { checkCarryOver, getInitiativeWarnings, getRoleFulfillment } from '~/utils/capacityCalculator'
 import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
@@ -168,7 +155,6 @@ const emit = defineEmits<{
   'drop-member': [payload: { initiative: Initiative; memberId: string; role: string; startWeek: number }]
 }>()
 
-// Use the board drag and drop composable
 const {
   dragState,
   dropTarget,
@@ -181,143 +167,121 @@ const {
   getDropRole,
 } = useBoardDragDrop()
 
-// Computed drag over state using the composable
-const isDragOver = computed(() => {
-  if (!isDragging.value) return false
-  // Show drag over if dragging a member
-  return dragState.value?.type === 'member' && props.draggedMember !== null
-})
+const isCollapsed = ref(false)
+const totalWeeks = computed(() => props.quarter?.totalWeeks || 13)
 
-const isDragOverWeek = computed(() => {
-  if (!isDragging.value || !dropTarget.value) return null
-  // Only show week drag over if this is the target
-  if (isDropTarget(props.initiative.id, dropTarget.value.week)) {
-    return dropTarget.value.week
-  }
-  return null
-})
+// Counter to fix HTML5 dragleave flicker on child elements
+const weekDragCounters = ref<Record<number, number>>({})
 
-// Computed warnings
+// ─── Warnings & Fulfillment ────────────────────────────────
 const warnings = computed(() =>
   getInitiativeWarnings(props.initiative, props.members, props.allInitiatives, props.quarter?.id || '')
 )
-
-// Computed role fulfillment
+const warningCount = computed(() =>
+  warnings.value.overCapacityMembers.length +
+  warnings.value.unfilledRoles.length +
+  warnings.value.weekConflicts.length
+)
 const roleFulfillment = computed(() => getRoleFulfillment(props.initiative))
 
-// Role color mapping
-const roleColors: Record<string, string> = {
-  BE: 'blue',
-  FE: 'green',
-  MOBILE: 'orange',
-  QA: 'purple',
+// ─── Role colors ────────────────────────────────────────────
+const roleHexMap: Record<string, string> = {
+  BE: '#1565C0',
+  FE: '#2E7D32',
+  MOBILE: '#E65100',
+  QA: '#7B1FA2',
+}
+function getRoleHex(role: string): string {
+  return roleHexMap[role.toUpperCase()] || '#546E7A'
 }
 
-function getRoleColor(role: string): string {
-  return roleColors[role.toUpperCase()] || 'grey'
-}
-
-function getProgressColor(percentage: number): string {
-  if (percentage >= 100) return 'success'
-  if (percentage >= 75) return 'info'
-  if (percentage >= 50) return 'warning'
-  return 'error'
-}
-
+// ─── Helpers ────────────────────────────────────────────────
 function getMember(memberId: string): TeamMember | undefined {
   return props.members.find((m) => m.id === memberId)
 }
 
 function getAssignmentsForWeek(weekNumber: number): Assignment[] {
-  return props.initiative.assignments.filter((assignment) => {
-    const endWeek = assignment.startWeek + assignment.weeksAllocated - 1
-    return weekNumber >= assignment.startWeek && weekNumber <= endWeek
+  return props.initiative.assignments.filter((a) => {
+    const endWeek = a.startWeek + a.weeksAllocated - 1
+    return weekNumber >= a.startWeek && weekNumber <= endWeek
   })
 }
 
 function isAssignmentCarryover(assignment: Assignment, currentWeek: number): boolean {
   if (!props.quarter) return false
-  const carryOverInfo = checkCarryOver(assignment, props.quarter)
-  return carryOverInfo.carriesOver && currentWeek > props.quarter.totalWeeks - carryOverInfo.carriedWeeks
+  const info = checkCarryOver(assignment, props.quarter)
+  return info.carriesOver && currentWeek > props.quarter.totalWeeks - info.carriedWeeks
 }
 
 function getAssignmentIndex(assignment: Assignment): number {
   return props.initiative.assignments.findIndex((a) => a === assignment)
 }
 
-// Drag and drop handlers for the row
-function handleDragOver(event: DragEvent) {
-  if (props.draggedMember) {
-    // isDragOver is now computed, no need to manually set it
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'copy'
-    }
-  }
+function isCardDragging(assignment: Assignment): boolean {
+  if (!isDragging.value || dragState.value?.type !== 'assignment') return false
+  const d = dragState.value.data as Assignment
+  return d.memberId === assignment.memberId && d.startWeek === assignment.startWeek
 }
 
-function handleDragLeave() {
-  // isDragOver is now computed, no need to manually clear it
+// ─── Drop target tracking ───────────────────────────────────
+function isDropTargetWeek(week: number): boolean {
+  if (!isDragging.value) return false
+  return isDropTarget(props.initiative.id, week)
 }
 
-function handleDrop(event: DragEvent) {
-  // isDragOver is now computed, no need to manually clear it
+// ─── DnD Handlers ───────────────────────────────────────────
+// Uses enter/leave counter pattern to prevent flicker when
+// hovering over child elements inside a week column.
+function handleWeekDragEnter(event: DragEvent, week: number) {
+  event.preventDefault()
+  if (!weekDragCounters.value[week]) weekDragCounters.value[week] = 0
+  weekDragCounters.value[week]++
 
-  if (!props.draggedMember) return
-
-  // Find a matching role requirement
-  const memberRoles = props.draggedMember.roles
-  const matchingRequirement = props.initiative.roleRequirements.find(
-    (req) => memberRoles.includes(req.role)
-  )
-
-  const startWeek = 1 // Default to first week when dropping on the row
-
-  if (matchingRequirement) {
-    emit('drop-member', {
-      initiative: props.initiative,
-      memberId: props.draggedMember.id,
-      role: matchingRequirement.role,
-      startWeek,
-    })
-  } else if (props.initiative.roleRequirements.length > 0) {
-    // Use first role requirement if no match
-    emit('drop-member', {
-      initiative: props.initiative,
-      memberId: props.draggedMember.id,
-      role: props.initiative.roleRequirements[0].role,
-      startWeek,
-    })
-  }
-}
-
-// Week-specific drag handlers using the composable
-function handleWeekDragOver(event: DragEvent, week: number) {
-  if (props.draggedMember) {
+  if (weekDragCounters.value[week] === 1) {
     setDropTarget(props.initiative.id, week)
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = 'copy'
-    }
+  }
+  if (event.dataTransfer) {
+    // Use 'move' for assignments, 'copy' for members — must match effectAllowed
+    event.dataTransfer.dropEffect = dragState.value?.type === 'assignment' ? 'move' : 'copy'
   }
 }
 
-function handleWeekDragLeave() {
-  // Clear the drop target when leaving the cell
-  setDropTarget(props.initiative.id, null)
+function handleWeekDragOver(event: DragEvent, _week: number) {
+  // Always preventDefault on dragover to allow drops
+  // Without this, the browser will not fire the 'drop' event
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = dragState.value?.type === 'assignment' ? 'move' : 'copy'
+  }
+}
+
+function handleWeekDragLeave(_event: DragEvent, week: number) {
+  if (!weekDragCounters.value[week]) weekDragCounters.value[week] = 0
+  weekDragCounters.value[week]--
+
+  if (weekDragCounters.value[week] <= 0) {
+    weekDragCounters.value[week] = 0
+    setDropTarget(props.initiative.id, null as unknown as number)
+  }
 }
 
 function handleWeekDrop(event: DragEvent, week: number) {
-  // Use the composable's handleDropOnWeek method
+  // Must preventDefault to complete the drop
+  event.preventDefault()
+
+  // Reset counter for this column
+  weekDragCounters.value[week] = 0
+  setDropTarget(props.initiative.id, null as unknown as number)
+
+  // The composable handles both member and assignment drops
   const success = handleDropOnWeek(props.initiative, week)
+  if (success) {
+    endDrag()
+    return
+  }
 
-  // Clear the drop target
-  setDropTarget(props.initiative.id, null)
-
-  // If the composable successfully handled the drop, we're done
-  if (success) return
-
-  // Otherwise, fall back to emitting the event for backward compatibility
+  // Fallback for member drops that the composable couldn't handle
   if (!props.draggedMember) return
-
   const role = getDropRole(props.draggedMember, props.initiative)
   if (role) {
     emit('drop-member', {
@@ -327,13 +291,11 @@ function handleWeekDrop(event: DragEvent, week: number) {
       startWeek: week,
     })
   }
+  endDrag()
 }
 
 function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
-  // Use the composable's startAssignmentDrag to track the drag state
-  const week = assignment.startWeek
-  startAssignmentDrag(assignment, props.initiative.id, week)
-
+  startAssignmentDrag(assignment, props.initiative.id, assignment.startWeek)
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('application/json', JSON.stringify({
@@ -343,89 +305,238 @@ function handleAssignmentDragStart(event: DragEvent, assignment: Assignment) {
     }))
   }
 }
+
+function handleDragEnd() {
+  endDrag()
+}
 </script>
 
 <style scoped>
-.board-row {
-  transition: background-color 0.2s ease;
+.board-swimlane {
+  background: #f8f9fb;
+  border-radius: 12px;
+  border: 1px solid #e8ecf1;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.board-row:hover {
-  background-color: rgb(var(--v-theme-surface-variant));
+.board-swimlane + .board-swimlane {
+  margin-top: 12px;
 }
 
-.board-row.drag-over {
-  background-color: rgb(var(--v-theme-primary-lighten-5)) !important;
+/* ─── Header ──────────────────────────────────────────────── */
+.swimlane-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #e8ecf1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
-.initiative-cell {
-  position: sticky;
-  left: 0;
-  background: rgb(var(--v-theme-surface));
-  z-index: 1;
-  border-right: 1px solid rgb(var(--v-theme-border));
+.swimlane-header:hover {
+  background: #f0f4ff;
 }
 
-.week-cell {
-  min-width: 60px;
-  vertical-align: top;
-  transition: background-color 0.15s ease;
+.swimlane-header__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 200px;
 }
 
-.week-cell.drag-over-week {
-  background-color: rgb(var(--v-theme-primary-lighten-4)) !important;
-  outline: 2px dashed rgb(var(--v-theme-primary));
-  outline-offset: -2px;
+.swimlane-header__toggle {
+  flex-shrink: 0;
 }
 
-.carryover-week {
-  background-color: var(--color-carryover-bg);
+.swimlane-header__title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  white-space: nowrap;
 }
 
-.assignments-container {
+.swimlane-header__badge {
+  font-weight: 600;
+}
+
+.swimlane-header__roles {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  overflow-x: auto;
+  padding: 0 8px;
+}
+
+.swimlane-header__add {
+  flex-shrink: 0;
+}
+
+/* ─── Role pills ──────────────────────────────────────────── */
+.role-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--role-color) 8%, transparent);
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.role-pill__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--role-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-pill__value {
+  font-size: 0.7rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.role-pill__bar {
+  width: 40px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.role-pill__fill {
+  height: 100%;
+  background: var(--role-color);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ─── Week columns board ──────────────────────────────────── */
+.swimlane-board {
+  padding: 8px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+}
+
+.swimlane-weeks {
+  display: flex;
+  gap: 6px;
+  min-width: max-content;
+}
+
+.week-column {
+  flex: 0 0 120px;
+  min-height: 60px;
+  padding: 6px;
+  background: #f0f2f5;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
+  gap: 6px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  border: 2px solid transparent;
+}
+
+/* When dragging anything, all week columns get a subtle "ready" state */
+.board-swimlane--drag-active .week-column {
+  border-color: rgba(25, 118, 210, 0.15);
+  background: #f5f8ff;
+}
+
+.week-column--drop-target {
+  background: #e3f2fd;
+  border-color: #1976D2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+}
+
+.week-column--carryover {
+  background: #fff8e1;
+}
+
+.week-column__label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #aaa;
+  text-align: center;
+  padding: 2px 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.week-column--drop-target .week-column__label {
+  color: #1976D2;
+  font-weight: 700;
+}
+
+.week-column__drop-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
-  min-height: 30px;
+  padding: 8px 4px;
+  border: 2px dashed #1976D2;
+  border-radius: 8px;
+  background: rgba(25, 118, 210, 0.06);
+  animation: pulse-glow 1.2s ease-in-out infinite;
 }
 
-.actions-cell {
-  position: sticky;
-  right: 0;
-  background: rgb(var(--v-theme-surface));
-  z-index: 1;
-  border-left: 1px solid rgb(var(--v-theme-border));
+.week-column__drop-text {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #1976D2;
+  letter-spacing: 0.3px;
 }
 
-.drop-zone-indicator {
-  display: flex;
-  align-items: center;
-  padding: 4px 8px;
-  background-color: rgb(var(--v-theme-primary-lighten-5));
-  border-radius: 4px;
-  border: 1px dashed rgb(var(--v-theme-primary));
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
-.role-fulfillment {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-width: 80px;
+/* ─── Collapsed ───────────────────────────────────────────── */
+.board-swimlane--collapsed .swimlane-header {
+  border-bottom: none;
 }
 
-.role-progress {
-  flex: 1;
-  min-width: 40px;
-  max-width: 60px;
+/* ─── Dark theme ──────────────────────────────────────────── */
+.v-theme--dark .board-swimlane {
+  background: #1a1a2e;
+  border-color: #2d2d44;
 }
 
-.role-progress-text {
-  min-width: 45px;
-  font-size: 0.7rem;
+.v-theme--dark .swimlane-header {
+  background: #16213e;
+  border-bottom-color: #2d2d44;
 }
 
-.warning-tooltip ul {
-  padding-left: 1.2rem;
-  margin: 0;
+.v-theme--dark .swimlane-header:hover {
+  background: #1a2744;
+}
+
+.v-theme--dark .swimlane-header__title {
+  color: #e0e0e0;
+}
+
+.v-theme--dark .week-column {
+  background: #16213e;
+}
+
+.v-theme--dark .week-column--drop-target {
+  background: #1a2744;
+  border-color: #42a5f5;
+}
+
+.v-theme--dark .week-column--carryover {
+  background: #2d2416;
 }
 </style>

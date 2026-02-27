@@ -1,95 +1,47 @@
 <template>
-  <v-card class="quarter-summary" variant="tonal" color="grey-lighten-3">
-    <v-card-text>
-      <v-row>
-        <!-- Quarter info -->
-        <v-col cols="12" sm="3">
-          <div class="summary-item">
-            <v-icon color="primary" size="large">mdi-calendar</v-icon>
-            <div class="ml-3">
-              <div class="text-caption text-grey">Quarter</div>
-              <div class="text-h6 font-weight-bold">{{ quarter.label }}</div>
-            </div>
-          </div>
-        </v-col>
+  <div class="quarter-summary-bar">
+    <div class="summary-card summary-card--quarter">
+      <v-icon size="22" color="primary" class="summary-card__icon">mdi-calendar-range</v-icon>
+      <div>
+        <span class="summary-card__label">Quarter</span>
+        <span class="summary-card__value text-primary">{{ quarter.label }}</span>
+      </div>
+    </div>
 
-        <!-- Total capacity -->
-        <v-col cols="6" sm="2">
-          <div class="summary-item text-center">
-            <div class="text-caption text-grey">Available</div>
-            <div class="text-h5 font-weight-bold text-primary">
-              {{ summary?.totalAvailable || 0 }}
-            </div>
-            <div class="text-caption">manweeks</div>
-          </div>
-        </v-col>
+    <div class="summary-card">
+      <div class="summary-card__ring" :style="ringStyle">
+        <span class="summary-card__ring-text">{{ utilizationPercent.toFixed(0) }}%</span>
+      </div>
+      <div>
+        <span class="summary-card__label">Utilization</span>
+        <span class="summary-card__value" :class="utilizationTextClass">
+          {{ summary?.totalAllocated || 0 }} / {{ summary?.totalAvailable || 0 }}
+        </span>
+      </div>
+    </div>
 
-        <!-- Allocated -->
-        <v-col cols="6" sm="2">
-          <div class="summary-item text-center">
-            <div class="text-caption text-grey">Allocated</div>
-            <div class="text-h5 font-weight-bold" :class="allocationColor">
-              {{ summary?.totalAllocated || 0 }}
-            </div>
-            <div class="text-caption">manweeks</div>
-          </div>
-        </v-col>
+    <div class="summary-card">
+      <div class="summary-card__stat">
+        <span class="summary-card__stat-number" :class="remainingClass">{{ remaining }}</span>
+        <span class="summary-card__stat-unit">mw</span>
+      </div>
+      <div>
+        <span class="summary-card__label">Remaining</span>
+        <span class="summary-card__value text-grey">manweeks free</span>
+      </div>
+    </div>
 
-        <!-- Remaining -->
-        <v-col cols="6" sm="2">
-          <div class="summary-item text-center">
-            <div class="text-caption text-grey">Remaining</div>
-            <div class="text-h5 font-weight-bold" :class="remainingColor">
-              {{ remaining }}
-            </div>
-            <div class="text-caption">manweeks</div>
-          </div>
-        </v-col>
+    <!-- Alerts -->
+    <div v-if="overAllocatedCount > 0" class="summary-alert summary-alert--warning">
+      <v-icon size="16" color="warning">mdi-alert-circle</v-icon>
+      <span>{{ overAllocatedCount }} over-allocated</span>
+    </div>
 
-        <!-- Utilization -->
-        <v-col cols="6" sm="3">
-          <div class="summary-item">
-            <div class="text-caption text-grey mb-1">Utilization</div>
-            <v-progress-linear
-              :model-value="utilizationPercent"
-              :color="utilizationColor"
-              height="8"
-              rounded
-            />
-            <div class="text-center text-caption mt-1">
-              {{ utilizationPercent.toFixed(1) }}%
-            </div>
-          </div>
-        </v-col>
-      </v-row>
-
-      <!-- Warnings -->
-      <v-row v-if="hasWarnings" class="mt-2">
-        <v-col cols="12">
-          <v-alert
-            v-if="overAllocatedCount > 0"
-            type="warning"
-            density="compact"
-            variant="tonal"
-            class="mb-2"
-          >
-            <v-icon start>mdi-alert</v-icon>
-            {{ overAllocatedCount }} member(s) over-allocated
-          </v-alert>
-
-          <v-alert
-            v-if="unassignedCount > 0"
-            type="info"
-            density="compact"
-            variant="tonal"
-          >
-            <v-icon start>mdi-information</v-icon>
-            {{ unassignedCount }} role requirement(s) need assignment
-          </v-alert>
-        </v-col>
-      </v-row>
-    </v-card-text>
-  </v-card>
+    <div v-if="unassignedCount > 0" class="summary-alert summary-alert--info">
+      <v-icon size="16" color="info">mdi-information</v-icon>
+      <span>{{ unassignedCount }} unfilled roles</span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -111,48 +63,158 @@ const utilizationPercent = computed(() => {
   return (props.summary.totalAllocated / props.summary.totalAvailable) * 100
 })
 
-const utilizationColor = computed(() => {
-  const pct = utilizationPercent.value
-  if (pct > 100) return 'error'
-  if (pct > 90) return 'warning'
-  if (pct > 70) return 'success'
-  return 'primary'
-})
-
-const allocationColor = computed(() => {
-  if (!props.summary) return 'text-primary'
+const utilizationTextClass = computed(() => {
   const pct = utilizationPercent.value
   if (pct > 100) return 'text-error'
   if (pct > 90) return 'text-warning'
-  return 'text-primary'
+  return 'text-success'
 })
 
-const remainingColor = computed(() => {
+const remainingClass = computed(() => {
   if (remaining.value < 0) return 'text-error'
   if (remaining.value < 5) return 'text-warning'
   return 'text-success'
 })
 
-const overAllocatedCount = computed(() =>
-  props.summary?.overAllocatedMembers.length || 0
-)
+const ringStyle = computed(() => {
+  const pct = Math.min(100, utilizationPercent.value)
+  let color = '#4CAF50'
+  if (pct > 100) color = '#E53935'
+  else if (pct > 90) color = '#FFC107'
+  else if (pct < 30) color = '#1976D2'
+  return {
+    background: `conic-gradient(${color} ${pct * 3.6}deg, #e0e0e0 ${pct * 3.6}deg)`,
+  }
+})
 
-const unassignedCount = computed(() =>
-  props.summary?.unassignedRequirements.length || 0
-)
-
-const hasWarnings = computed(() =>
-  overAllocatedCount.value > 0 || unassignedCount.value > 0
-)
+const overAllocatedCount = computed(() => props.summary?.overAllocatedMembers.length || 0)
+const unassignedCount = computed(() => props.summary?.unassignedRequirements.length || 0)
 </script>
 
 <style scoped>
-.quarter-summary {
-  border-radius: 12px;
-}
-
-.summary-item {
+.quarter-summary-bar {
   display: flex;
   align-items: center;
+  gap: 20px;
+  padding: 14px 20px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8ecf1;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary-card__icon {
+  flex-shrink: 0;
+}
+
+.summary-card__label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9e9e9e;
+}
+
+.summary-card__value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Utilization ring */
+.summary-card__ring {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.summary-card__ring::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.summary-card__ring-text {
+  position: relative;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #333;
+}
+
+/* Stat number */
+.summary-card__stat {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.summary-card__stat-number {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.summary-card__stat-unit {
+  font-size: 0.7rem;
+  color: #9e9e9e;
+  font-weight: 500;
+}
+
+/* Alerts */
+.summary-alert {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.summary-alert--warning {
+  background: #FFF8E1;
+  color: #F57F17;
+}
+
+.summary-alert--info {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
+/* Dark theme */
+.v-theme--dark .quarter-summary-bar {
+  background: #1e1e2e;
+  border-color: #2d2d44;
+}
+
+.v-theme--dark .summary-card__ring::before {
+  background: #1e1e2e;
+}
+
+.v-theme--dark .summary-card__ring-text {
+  color: #e0e0e0;
+}
+
+.v-theme--dark .summary-alert--warning {
+  background: #3e2b0a;
+}
+
+.v-theme--dark .summary-alert--info {
+  background: #0a2540;
 }
 </style>

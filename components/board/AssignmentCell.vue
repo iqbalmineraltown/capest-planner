@@ -1,25 +1,54 @@
 <template>
   <div
-    ref="cellRef"
-    class="assignment-cell"
+    class="assignment-card"
     :class="[
-      `role-${roleClass}`,
-      { 'carryover-cell': isCarryover, 'dragging': isDragging }
+      `assignment-card--${roleSlug}`,
+      {
+        'assignment-card--carryover': isCarryover,
+        'assignment-card--dragging': isDragging,
+        'assignment-card--ghost': isGhost,
+      },
     ]"
-    @click="$emit('click')"
+    @click.stop="$emit('click')"
   >
-    <div class="cell-content">
-      <span class="member-name">{{ member?.name || 'Unknown' }}</span>
-      <span class="role-badge">{{ assignment.role }}</span>
+    <!-- Color accent bar -->
+    <div class="assignment-card__accent" :style="{ backgroundColor: roleColor }" />
+
+    <div class="assignment-card__body">
+      <!-- Header: avatar + name -->
+      <div class="assignment-card__header">
+        <div
+          class="assignment-card__avatar"
+          :style="{ backgroundColor: roleColor + '22', color: roleColor }"
+        >
+          {{ initials }}
+        </div>
+        <div class="assignment-card__info">
+          <span class="assignment-card__name">{{ member?.name || 'Unknown' }}</span>
+          <span class="assignment-card__role" :style="{ color: roleColor }">{{ assignment.role }}</span>
+        </div>
+      </div>
+
+      <!-- Footer: week info -->
+      <div class="assignment-card__footer">
+        <span class="assignment-card__weeks">
+          {{ assignment.weeksAllocated }}w
+        </span>
+        <v-icon
+          v-if="isCarryover"
+          size="12"
+          class="assignment-card__carryover-icon"
+          color="warning"
+        >
+          mdi-arrow-right-bold
+        </v-icon>
+      </div>
     </div>
-    <v-icon v-if="isCarryover" size="x-small" class="carryover-icon">
-      mdi-arrow-right-bold
-    </v-icon>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import type { Assignment, TeamMember } from '~/types'
 
 const props = defineProps<{
@@ -27,115 +56,183 @@ const props = defineProps<{
   member: TeamMember | undefined
   isCarryover: boolean
   isDragging?: boolean
+  isGhost?: boolean
 }>()
 
 defineEmits<{
   click: []
 }>()
 
-const cellRef = ref<HTMLDivElement | null>(null)
+const roleSlug = computed(() => props.assignment.role.toLowerCase().replace(/[^a-z]/g, ''))
 
-const roleClass = computed(() => {
-  const role = props.assignment.role.toLowerCase()
-  return role.replace(/[^a-z]/g, '')
-})
-
-const roleColors: Record<string, { bg: string; text: string }> = {
-  be: { bg: '#E3F2FD', text: '#1565C0' },
-  fe: { bg: '#E8F5E9', text: '#2E7D32' },
-  mobile: { bg: '#FFF3E0', text: '#E65100' },
-  qa: { bg: '#F3E5F5', text: '#7B1FA2' },
+const roleColorMap: Record<string, string> = {
+  be: '#1565C0',
+  fe: '#2E7D32',
+  mobile: '#E65100',
+  qa: '#7B1FA2',
 }
 
-const cellStyle = computed(() => {
-  const role = props.assignment.role.toLowerCase()
-  const colors = roleColors[role] || { bg: '#F5F5F5', text: '#424242' }
-  return {
-    backgroundColor: colors.bg,
-    color: colors.text,
-  }
+const roleColor = computed(() => {
+  const r = props.assignment.role.toLowerCase()
+  return roleColorMap[r] || '#546E7A'
 })
 
-defineExpose({
-  cellRef,
+const initials = computed(() => {
+  if (!props.member) return '??'
+  return props.member.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 })
 </script>
 
 <style scoped>
-.assignment-cell {
-  padding: 4px 8px;
-  border-radius: 4px;
+.assignment-card {
+  position: relative;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
   cursor: grab;
-  font-size: 0.75rem;
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
-.assignment-cell:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.assignment-cell.dragging {
-  transform: scale(1.05);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  opacity: 0.9;
-  z-index: 1000;
-  cursor: grabbing;
-}
-
-.role-be {
-  background-color: var(--color-be-bg);
-  color: var(--color-be);
-}
-
-.role-fe {
-  background-color: var(--color-fe-bg);
-  color: var(--color-fe);
-}
-
-.role-mobile {
-  background-color: var(--color-mobile-bg);
-  color: var(--color-mobile);
-}
-
-.role-qa {
-  background-color: var(--color-qa-bg);
-  color: var(--color-qa);
-}
-
-.carryover-cell {
-  border: 2px dashed var(--color-carryover);
-  background-color: var(--color-carryover-bg);
-}
-
-.cell-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  flex: 1;
+  user-select: none;
+  overflow: hidden;
+  transition:
+    transform 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.18s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s ease;
   min-width: 0;
 }
 
-.member-name {
-  font-weight: 500;
+.assignment-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.assignment-card:active {
+  cursor: grabbing;
+  transform: translateY(-1px) scale(1.02);
+}
+
+.assignment-card--dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.assignment-card--ghost {
+  opacity: 0.85;
+  transform: rotate(3deg) scale(1.05);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+}
+
+.assignment-card--carryover {
+  border: 2px dashed #FFC107;
+}
+
+/* Accent bar on left */
+.assignment-card__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+}
+
+.assignment-card__body {
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignment-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assignment-card__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.assignment-card__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.assignment-card__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1a1a2e;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.3;
 }
 
-.role-badge {
+.assignment-card__role {
   font-size: 0.65rem;
+  font-weight: 600;
   text-transform: uppercase;
-  opacity: 0.8;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
 }
 
-.carryover-icon {
-  color: var(--color-carryover);
+.assignment-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assignment-card__weeks {
+  font-size: 0.7rem;
+  color: #9e9e9e;
+  font-weight: 500;
+}
+
+.assignment-card__carryover-icon {
+  animation: pulse-carry 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-carry {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Dark theme support */
+:root.dark .assignment-card,
+.v-theme--dark .assignment-card {
+  background: #1e1e2e;
+}
+
+.v-theme--dark .assignment-card__name {
+  color: #e0e0e0;
+}
+
+.v-theme--dark .assignment-card__weeks {
+  color: #9e9e9e;
+}
+
+.v-theme--dark .assignment-card:hover {
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.2);
 }
 </style>

@@ -1,12 +1,12 @@
 <template>
   <div class="board-page">
-    <!-- Page header -->
-    <div class="d-flex align-center justify-space-between mb-4">
+    <!-- Page Header -->
+    <div class="board-page__header">
       <div>
-        <h1 class="text-h4 font-weight-bold">Capacity Board</h1>
-        <p class="text-grey-darken-1">Visualize and manage team capacity allocation</p>
+        <h1 class="board-page__title">Capacity Board</h1>
+        <p class="board-page__subtitle">Visualize and manage team capacity allocation</p>
       </div>
-      <div class="d-flex ga-2">
+      <div class="board-page__actions">
         <v-select
           v-model="selectedQuarterId"
           :items="quarterOptions"
@@ -14,11 +14,13 @@
           density="compact"
           variant="outlined"
           hide-details
-          style="min-width: 150px"
+          rounded="lg"
+          style="min-width: 160px"
         />
         <v-btn
           color="primary"
-          variant="elevated"
+          variant="flat"
+          rounded="lg"
           prepend-icon="mdi-calendar-plus"
           @click="showAddQuarterDialog = true"
         >
@@ -46,9 +48,9 @@
 
     <!-- Add Quarter Dialog -->
     <v-dialog v-model="showAddQuarterDialog" max-width="400">
-      <v-card>
-        <v-card-title>Add New Quarter</v-card-title>
-        <v-card-text>
+      <v-card rounded="xl">
+        <v-card-title class="pt-5 px-5 font-weight-bold">Add New Quarter</v-card-title>
+        <v-card-text class="px-5">
           <v-row>
             <v-col cols="6">
               <v-select
@@ -57,6 +59,7 @@
                 label="Year"
                 variant="outlined"
                 density="comfortable"
+                rounded="lg"
               />
             </v-col>
             <v-col cols="6">
@@ -66,18 +69,18 @@
                 label="Quarter"
                 variant="outlined"
                 density="comfortable"
+                rounded="lg"
               />
             </v-col>
           </v-row>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="px-5 pb-4">
           <v-spacer />
-          <v-btn variant="text" @click="showAddQuarterDialog = false">
-            Cancel
-          </v-btn>
+          <v-btn variant="text" rounded="lg" @click="showAddQuarterDialog = false">Cancel</v-btn>
           <v-btn
             color="primary"
             variant="flat"
+            rounded="lg"
             :disabled="!newQuarterYear || !newQuarterNumber"
             @click="handleAddQuarter"
           >
@@ -132,43 +135,25 @@ const initialMemberId = ref<string>('')
 const initialRole = ref<string>('')
 const initialStartWeek = ref<number>(1)
 
-// New quarter form
 const currentYear = new Date().getFullYear()
 const newQuarterYear = ref(currentYear)
 const newQuarterNumber = ref(1)
 
 // Computed
-const selectedQuarter = computed(() =>
-  quartersStore.getQuarterById(selectedQuarterId.value)
-)
-
+const selectedQuarter = computed(() => quartersStore.getQuarterById(selectedQuarterId.value))
 const quarterOptions = computed(() =>
-  quartersStore.sortedQuarters.map((q) => ({
-    title: q.label,
-    value: q.id,
-  }))
+  quartersStore.sortedQuarters.map((q) => ({ title: q.label, value: q.id }))
 )
-
-const yearOptions = computed(() => {
-  const years = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2]
-  return years
-})
-
-const quarterInitiatives = computed(() =>
-  initiativesStore.getInitiativesByQuarter(selectedQuarterId.value)
-)
+const yearOptions = computed(() => [currentYear - 1, currentYear, currentYear + 1, currentYear + 2])
+const quarterInitiatives = computed(() => initiativesStore.getInitiativesByQuarter(selectedQuarterId.value))
 
 const quarterSummary = computed<QuarterCapacitySummary | null>(() => {
   const quarter = selectedQuarter.value
   if (!quarter) return null
-  return calculateQuarterCapacitySummary(
-    membersStore.members,
-    initiativesStore.initiatives,
-    quarter
-  )
+  return calculateQuarterCapacitySummary(membersStore.members, initiativesStore.initiatives, quarter)
 })
 
-// Initialize with current quarter
+// Watch for default quarter
 watch(
   () => quartersStore.currentQuarter,
   (quarter) => {
@@ -181,10 +166,8 @@ watch(
 
 // Actions
 function handleAddQuarter() {
-  const newQuarter = quartersStore.addQuarter(newQuarterYear.value, newQuarterNumber.value)
-  if (newQuarter) {
-    selectedQuarterId.value = newQuarter.id
-  }
+  const q = quartersStore.addQuarter(newQuarterYear.value, newQuarterNumber.value)
+  if (q) selectedQuarterId.value = q.id
   showAddQuarterDialog.value = false
 }
 
@@ -197,8 +180,9 @@ function openAssignmentDialog(payload: { initiative: Initiative; assignmentIndex
   showAssignmentDialog.value = true
 }
 
-function handleAddAssignment(payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative) {
-  // Handle both old format (just initiative) and new format (with memberId, role, and startWeek)
+function handleAddAssignment(
+  payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative
+) {
   if ('memberId' in payload && payload.memberId) {
     selectedInitiative.value = payload.initiative
     editingAssignmentIndex.value = -1
@@ -207,7 +191,6 @@ function handleAddAssignment(payload: { initiative: Initiative; memberId?: strin
     initialRole.value = payload.role || ''
     initialStartWeek.value = payload.startWeek || 1
   } else {
-    // Old format - just initiative
     const initiative = 'initiative' in payload ? payload.initiative : payload
     selectedInitiative.value = initiative
     editingAssignmentIndex.value = -1
@@ -223,16 +206,9 @@ function handleSaveAssignment(assignment: Assignment) {
   if (!selectedInitiative.value) return
 
   if (editingAssignmentIndex.value >= 0) {
-    // Update existing
-    initiativesStore.updateAssignment(
-      selectedInitiative.value.id,
-      editingAssignmentIndex.value,
-      assignment
-    )
+    initiativesStore.updateAssignment(selectedInitiative.value.id, editingAssignmentIndex.value, assignment)
   } else {
-    // Add new
     initiativesStore.addAssignment(selectedInitiative.value.id, assignment)
-    // Update member's assigned initiatives
     membersStore.assignToInitiative(assignment.memberId, selectedInitiative.value.id)
   }
 
@@ -247,8 +223,8 @@ function handleSaveAssignment(assignment: Assignment) {
 function handleDeleteAssignment() {
   if (!selectedInitiative.value || editingAssignmentIndex.value < 0) return
 
-  const assignment = selectedInitiative.value.assignments[editingAssignmentIndex.value]
-  membersStore.unassignFromInitiative(assignment.memberId, selectedInitiative.value.id)
+  const a = selectedInitiative.value.assignments[editingAssignmentIndex.value]
+  membersStore.unassignFromInitiative(a.memberId, selectedInitiative.value.id)
   initiativesStore.removeAssignment(selectedInitiative.value.id, editingAssignmentIndex.value)
 
   showAssignmentDialog.value = false
@@ -262,18 +238,47 @@ function handleDeleteAssignment() {
 
 <style scoped>
 .board-page {
-  animation: fadeIn 0.3s ease-in-out;
   height: 100%;
   display: flex;
   flex-direction: column;
+  animation: board-fade-in 0.35s ease;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+@keyframes board-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.board-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.board-page__title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.board-page__subtitle {
+  font-size: 0.88rem;
+  color: #9e9e9e;
+  margin: 2px 0 0;
+}
+
+.board-page__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.v-theme--dark .board-page__title {
+  color: #e0e0e0;
 }
 </style>
