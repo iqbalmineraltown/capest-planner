@@ -1,7 +1,15 @@
+import pkg from './package.json'
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
+
+  runtimeConfig: {
+    public: {
+      appVersion: pkg.version,
+    },
+  },
 
   // Static SPA mode for Firebase Hosting
   ssr: false,

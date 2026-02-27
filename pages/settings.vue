@@ -23,17 +23,22 @@
           <v-chip
             v-for="role in rolesStore.roles"
             :key="role"
-            :color="getRoleColor(role)"
-            :closable="!isDefaultRole(role)"
+            :color="rolesStore.getRoleColor(role)"
             label
             size="default"
-            @click:close="confirmRemoveRole(role)"
+            class="role-chip"
+            @click="openEditRole(role)"
           >
             <v-icon start size="small">mdi-account-hard-hat</v-icon>
             {{ role }}
-            <v-tooltip v-if="isDefaultRole(role)" activator="parent" location="top">
-              Default role — cannot be removed
-            </v-tooltip>
+            <v-icon end size="x-small" class="ml-1 edit-hint">mdi-pencil</v-icon>
+            <v-icon
+              v-if="!rolesStore.isDefaultRole(role)"
+              end
+              size="x-small"
+              class="ml-1 role-close-btn"
+              @click.stop="confirmRemoveRole(role)"
+            >mdi-close-circle</v-icon>
           </v-chip>
         </div>
 
@@ -171,16 +176,15 @@
       <v-card-text>
         <!-- Storage info -->
         <v-alert type="info" density="compact" variant="tonal" class="mb-4">
-          <div class="d-flex flex-wrap gap-4">
-            <span><strong>{{ membersStore.memberCount }}</strong> members</span>
-            <span><strong>{{ initiativesStore.initiativeCount }}</strong> initiatives</span>
-            <span><strong>{{ quartersStore.quarterCount }}</strong> quarters</span>
-            <span><strong>{{ rolesStore.roles.length }}</strong> roles</span>
-          </div>
+          <v-row dense align="center">
+            <v-col cols="auto" v-for="(stat, idx) in storageStats" :key="idx">
+              <span><strong>{{ stat.count }}</strong> {{ stat.label }}</span>
+            </v-col>
+          </v-row>
         </v-alert>
 
-        <v-row dense class="mb-2">
-          <v-col cols="12" sm="4">
+        <v-row dense>
+          <v-col cols="12" sm="6" md="4">
             <v-btn
               block
               variant="outlined"
@@ -191,7 +195,7 @@
               Export Data
             </v-btn>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6" md="4">
             <v-btn
               block
               variant="outlined"
@@ -218,7 +222,7 @@
           Danger Zone
         </h4>
         <v-row dense>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6" md="4">
             <v-btn
               block
               variant="outlined"
@@ -229,7 +233,7 @@
               Clear All Data
             </v-btn>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6" md="4">
             <v-btn
               block
               variant="outlined"
@@ -383,13 +387,64 @@
       <v-card>
         <v-card-title class="text-h6">Remove Role?</v-card-title>
         <v-card-text>
-          Remove the role <v-chip :color="getRoleColor(roleToRemove)" label size="small">{{ roleToRemove }}</v-chip>?
+          Remove the role <v-chip :color="rolesStore.getRoleColor(roleToRemove)" label size="small">{{ roleToRemove }}</v-chip>?
           This will not affect existing member or initiative assignments.
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="showRemoveRoleDialog = false">Cancel</v-btn>
           <v-btn color="error" variant="flat" @click="executeRemoveRole">Remove</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Edit role dialog -->
+    <v-dialog v-model="showEditRoleDialog" max-width="450" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon start color="primary">mdi-palette</v-icon>
+          Edit Role
+        </v-card-title>
+        <v-card-text>
+          <!-- Role name -->
+          <v-text-field
+            v-if="!rolesStore.isDefaultRole(editRoleOriginalName)"
+            v-model="editRoleName"
+            label="Role Name"
+            variant="outlined"
+            density="comfortable"
+            hide-details="auto"
+            :error-messages="editRoleError"
+            class="mb-4"
+          />
+          <div v-else class="mb-4">
+            <span class="text-caption text-medium-emphasis">Role</span>
+            <div>
+              <v-chip :color="editRoleColor" label>{{ editRoleOriginalName }}</v-chip>
+              <span class="text-caption text-medium-emphasis ml-2">(default role — name cannot be changed)</span>
+            </div>
+          </div>
+
+          <!-- Color picker -->
+          <div class="text-subtitle-2 mb-2">Color</div>
+          <div class="d-flex flex-wrap gap-2">
+            <v-avatar
+              v-for="color in AVAILABLE_COLORS"
+              :key="color"
+              :color="color"
+              size="36"
+              class="color-swatch"
+              :class="{ 'color-swatch--selected': editRoleColor === color }"
+              @click="editRoleColor = color"
+            >
+              <v-icon v-if="editRoleColor === color" color="white" size="small">mdi-check</v-icon>
+            </v-avatar>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showEditRoleDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" @click="saveEditRole">Save</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -433,7 +488,8 @@ const { clearAllData, resetWithSampleData } = useSeedData()
 const { mode: themeMode, currentTheme, setTheme } = useAppTheme()
 const toast = useToast()
 
-const appVersion = '1.0.0'
+const runtimeConfig = useRuntimeConfig()
+const appVersion = runtimeConfig.public.appVersion as string
 const currentQuarterId = getCurrentQuarterId()
 
 // ─── Theme ──────────────────────────────────────────────────
@@ -448,20 +504,17 @@ const newRoleError = ref('')
 const showRemoveRoleDialog = ref(false)
 const roleToRemove = ref('')
 
-const roleColors: Record<string, string> = {
-  BE: 'blue',
-  FE: 'green',
-  MOBILE: 'orange',
-  QA: 'purple',
-}
+// Edit role dialog
+const showEditRoleDialog = ref(false)
+const editRoleName = ref('')
+const editRoleOriginalName = ref('')
+const editRoleColor = ref('')
+const editRoleError = ref('')
 
-function getRoleColor(role: string): string {
-  return roleColors[role.toUpperCase()] || 'grey'
-}
-
-function isDefaultRole(role: string): boolean {
-  return rolesStore.isDefaultRole(role)
-}
+const AVAILABLE_COLORS = [
+  'blue', 'green', 'orange', 'purple', 'teal', 'red', 'pink', 'indigo',
+  'cyan', 'lime', 'amber', 'deep-orange', 'brown', 'blue-grey', 'light-blue', 'deep-purple',
+]
 
 function addNewRole() {
   const name = newRoleName.value.toUpperCase().trim()
@@ -483,11 +536,50 @@ function confirmRemoveRole(role: string) {
   showRemoveRoleDialog.value = true
 }
 
+function onRoleChipClick(event: Event, role: string) {
+  // Don't open edit dialog if the close button was clicked
+  const target = event.target as HTMLElement
+  if (target.closest('.v-chip__close')) return
+  openEditRole(role)
+}
+
 function executeRemoveRole() {
   const role = roleToRemove.value
   rolesStore.removeRole(role)
   showRemoveRoleDialog.value = false
   toast.success(`Role "${role}" removed`)
+}
+
+function openEditRole(role: string) {
+  editRoleName.value = role
+  editRoleOriginalName.value = role
+  editRoleColor.value = rolesStore.getRoleColor(role)
+  editRoleError.value = ''
+  showEditRoleDialog.value = true
+}
+
+function saveEditRole() {
+  const newName = editRoleName.value.toUpperCase().trim()
+
+  // Handle rename for custom roles
+  if (!rolesStore.isDefaultRole(editRoleOriginalName.value) && newName !== editRoleOriginalName.value) {
+    if (!newName) {
+      editRoleError.value = 'Role name cannot be empty'
+      return
+    }
+    if (rolesStore.roles.includes(newName)) {
+      editRoleError.value = `Role "${newName}" already exists`
+      return
+    }
+    rolesStore.renameRole(editRoleOriginalName.value, newName)
+  }
+
+  // Update color
+  const targetRole = rolesStore.isDefaultRole(editRoleOriginalName.value) ? editRoleOriginalName.value : newName
+  rolesStore.updateRoleColor(targetRole, editRoleColor.value)
+
+  showEditRoleDialog.value = false
+  toast.success(`Role "${targetRole}" updated`)
 }
 
 // ─── Quarter Management ─────────────────────────────────────
@@ -539,6 +631,13 @@ const showResetDialog = ref(false)
 const showImportDialog = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const pendingFile = ref<File | null>(null)
+
+const storageStats = computed(() => [
+  { count: membersStore.memberCount, label: 'members' },
+  { count: initiativesStore.initiativeCount, label: 'initiatives' },
+  { count: quartersStore.quarterCount, label: 'quarters' },
+  { count: rolesStore.roles.length, label: 'roles' },
+])
 
 function handleExport() {
   exportData()
@@ -594,5 +693,34 @@ function handleResetWithSample() {
 .settings-page {
   max-width: 900px;
   margin: 0 auto;
+}
+
+.role-chip {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.role-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.role-chip .edit-hint {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.role-chip:hover .edit-hint {
+  opacity: 0.7;
+}
+
+.color-swatch {
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+.color-swatch--selected {
+  border-color: rgb(var(--v-theme-on-surface));
+  transform: scale(1.1);
 }
 </style>

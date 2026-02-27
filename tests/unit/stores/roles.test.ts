@@ -119,5 +119,127 @@ describe('rolesStore', () => {
 
       expect(store.roles).toEqual(DEFAULT_ROLES)
     })
+
+    it('should reset colors to defaults', () => {
+      const store = useRolesStore()
+      store.updateRoleColor('BE', 'red')
+      store.addRole('devops')
+
+      store.resetRoles()
+
+      expect(store.getRoleColor('BE')).toBe('blue')
+      expect(store.getRoleColor('FE')).toBe('green')
+      expect(store.getRoleColor('DEVOPS')).toBe('grey') // removed role
+    })
+  })
+
+  describe('getRoleColor', () => {
+    it('should return default colors for built-in roles', () => {
+      const store = useRolesStore()
+
+      expect(store.getRoleColor('BE')).toBe('blue')
+      expect(store.getRoleColor('FE')).toBe('green')
+      expect(store.getRoleColor('MOBILE')).toBe('orange')
+      expect(store.getRoleColor('QA')).toBe('purple')
+    })
+
+    it('should return grey for unknown roles', () => {
+      const store = useRolesStore()
+
+      expect(store.getRoleColor('UNKNOWN')).toBe('grey')
+    })
+
+    it('should auto-assign color when adding a new role', () => {
+      const store = useRolesStore()
+
+      store.addRole('devops')
+
+      const color = store.getRoleColor('DEVOPS')
+      expect(color).toBeTruthy()
+      expect(color).not.toBe('grey')
+    })
+  })
+
+  describe('updateRoleColor', () => {
+    it('should update color for a role', () => {
+      const store = useRolesStore()
+
+      store.updateRoleColor('BE', 'red')
+
+      expect(store.getRoleColor('BE')).toBe('red')
+    })
+
+    it('should not update color for a non-existent role', () => {
+      const store = useRolesStore()
+
+      store.updateRoleColor('NONEXISTENT', 'red')
+
+      expect(store.getRoleColor('NONEXISTENT')).toBe('grey')
+    })
+  })
+
+  describe('renameRole', () => {
+    it('should rename a custom role', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+      const originalColor = store.getRoleColor('DEVOPS')
+
+      const result = store.renameRole('DEVOPS', 'PLATFORM')
+
+      expect(result).toBe(true)
+      expect(store.roles).toContain('PLATFORM')
+      expect(store.roles).not.toContain('DEVOPS')
+      expect(store.getRoleColor('PLATFORM')).toBe(originalColor)
+    })
+
+    it('should not rename default roles', () => {
+      const store = useRolesStore()
+
+      const result = store.renameRole('BE', 'BACKEND')
+
+      expect(result).toBe(false)
+      expect(store.roles).toContain('BE')
+      expect(store.roles).not.toContain('BACKEND')
+    })
+
+    it('should not rename to an existing role name', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+
+      const result = store.renameRole('DEVOPS', 'BE')
+
+      expect(result).toBe(false)
+      expect(store.roles).toContain('DEVOPS')
+    })
+
+    it('should not rename to empty string', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+
+      const result = store.renameRole('DEVOPS', '')
+
+      expect(result).toBe(false)
+    })
+  })
+
+  describe('getNextAvailableColor', () => {
+    it('should return colors not already in use', () => {
+      const store = useRolesStore()
+
+      // Default roles use blue, green, orange, purple
+      const nextColor = store.getNextAvailableColor()
+      expect(['blue', 'green', 'orange', 'purple']).not.toContain(nextColor)
+    })
+
+    it('should return different colors for successive additions', () => {
+      const store = useRolesStore()
+
+      store.addRole('role1')
+      store.addRole('role2')
+
+      const color1 = store.getRoleColor('ROLE1')
+      const color2 = store.getRoleColor('ROLE2')
+      expect(color1).not.toBe(color2)
+    })
   })
 })

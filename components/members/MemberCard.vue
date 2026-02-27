@@ -93,6 +93,7 @@
 import { computed } from 'vue'
 import type { TeamMember } from '~/types'
 import { getInitials, stringToColor } from '~/utils/colorUtils'
+import { useRolesStore } from '~/stores/roles'
 
 interface Props {
   member: TeamMember
@@ -109,6 +110,8 @@ defineEmits<{
   delete: [id: string]
 }>()
 
+const rolesStore = useRolesStore()
+
 // Generate avatar color from name
 const avatarColor = computed(() => stringToColor(props.member.name))
 
@@ -117,14 +120,7 @@ const initials = computed(() => getInitials(props.member.name))
 
 // Get color for role chips
 function getRoleColor(role: string): string {
-  const roleColors: Record<string, string> = {
-    BE: 'blue',
-    FE: 'green',
-    MOBILE: 'purple',
-    QA: 'orange',
-  }
-
-  return roleColors[role] || stringToColor(role)
+  return rolesStore.getRoleColor(role) || stringToColor(role)
 }
 </script>
 

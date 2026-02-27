@@ -6,13 +6,13 @@ test.describe('Capacity Board Page', () => {
     await expect(page.locator('h1')).toContainText('Capacity Board')
   })
 
-  test('should display member pool with available crew', async ({ page }) => {
+  test('should display member pool sidebar', async ({ page }) => {
     await page.goto('/board')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1000)
 
-    // Should show member pool section
-    await expect(page.locator('text=Available Crew')).toBeVisible({ timeout: 10000 })
+    // Should show Team Pool sidebar
+    await expect(page.locator('text=Team Pool')).toBeVisible({ timeout: 10000 })
 
     // Should show some members in the pool (seed data has crew members)
     const memberPool = page.locator('.member-pool-card')
@@ -20,16 +20,16 @@ test.describe('Capacity Board Page', () => {
     expect(count).toBeGreaterThan(0)
   })
 
-  test('should display board with seeded initiatives', async ({ page }) => {
+  test('should display board with initiative header', async ({ page }) => {
     await page.goto('/board')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1000)
 
-    // Should show capacity allocation section - use exact match to avoid strict mode
-    await expect(page.locator('span:has-text("Capacity Allocation")').first()).toBeVisible({ timeout: 10000 })
+    // Should show Initiative column header in the board
+    await expect(page.locator('.board-week-header__label:has-text("Initiative")').first()).toBeVisible({ timeout: 10000 })
 
-    // Should show initiatives count chip (e.g., "5 initiatives")
-    await expect(page.locator('.v-chip:has-text("initiatives")').first()).toBeVisible()
+    // Should show quarter summary info
+    await expect(page.locator('.quarter-summary-bar').first()).toBeVisible()
   })
 
   test('should display quarter selector', async ({ page }) => {

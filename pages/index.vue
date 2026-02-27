@@ -333,13 +333,6 @@ const utilizationColor = computed(() => {
 })
 
 // Role distribution
-const roleColors: Record<string, string> = {
-  BE: 'blue',
-  FE: 'green',
-  MOBILE: 'orange',
-  QA: 'purple',
-}
-
 const roleDistribution = computed(() => {
   const counts: Record<string, number> = {}
 
@@ -352,7 +345,7 @@ const roleDistribution = computed(() => {
   return Object.entries(counts).map(([role, count]) => ({
     role,
     count,
-    color: roleColors[role.toUpperCase()] || 'grey',
+    color: rolesStore.getRoleColor(role) || 'grey',
   }))
 })
 
