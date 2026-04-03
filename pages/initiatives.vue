@@ -24,6 +24,9 @@
           @click="openCreateDialog"
         >
           Add Initiative
+          <v-tooltip activator="parent" location="bottom">
+            Add new initiative <kbd class="ml-1">n</kbd>
+          </v-tooltip>
         </v-btn>
       </v-col>
     </v-row>
@@ -88,6 +91,21 @@
       @select="handleSelect"
     />
 
+    <!-- Empty state override when no initiatives at all -->
+    <div v-if="initiativeCount === 0" class="text-center py-8">
+      <v-icon size="80" color="grey-lighten-2">mdi-lightbulb-on-outline</v-icon>
+      <h3 class="mt-4 text-grey-darken-1">No Initiatives Yet</h3>
+      <p class="text-grey mt-1 mb-4">Create your first initiative to start planning capacity allocation.</p>
+      <v-btn
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-plus"
+        @click="openCreateDialog"
+      >
+        Create First Initiative
+      </v-btn>
+    </div>
+
     <v-dialog v-model="showFormDialog" max-width="800" persistent>
       <v-card>
         <InitiativeForm
@@ -97,27 +115,68 @@
         />
       </v-card>
     </v-dialog>
+
+    <KeyboardShortcutsDialog v-model="showShortcutsDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import type { Initiative, QuarterConfig } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import InitiativeList from '~/components/initiatives/InitiativeList.vue'
 import InitiativeForm from '~/components/initiatives/InitiativeForm.vue'
 import { useToast } from '~/composables/useToast'
+import { useKeyboardShortcuts, useGlobalShortcuts } from '~/composables/useKeyboardShortcuts'
 
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
 const toast = useToast()
+const { registerShortcuts, unregisterShortcuts } = useGlobalShortcuts()
 
 const showFormDialog = ref(false)
 const editingInitiative = ref<Initiative | undefined>(undefined)
 const selectedInitiative = ref<Initiative | null>(null)
 const selectedQuarter = ref<string | null>(null)
 const displayMode = ref<'grid' | 'list'>('grid')
+const showShortcutsDialog = ref(false)
+
+// Register keyboard shortcuts for this page
+useKeyboardShortcuts([
+  {
+    key: 'n',
+    description: 'New initiative',
+    handler: () => openCreateDialog(),
+  },
+  {
+    key: '?',
+    description: 'Show keyboard shortcuts',
+    handler: () => { showShortcutsDialog.value = !showShortcutsDialog.value },
+  },
+  {
+    key: 'Escape',
+    description: 'Close any open dialog',
+    handler: () => {
+      if (showFormDialog.value) closeFormDialog()
+      if (showShortcutsDialog.value) showShortcutsDialog.value = false
+    },
+    requireNoInput: false,
+  },
+])
+
+// Register page shortcuts for the global help dialog
+onMounted(() => {
+  registerShortcuts('Initiatives', [
+    { key: 'n', description: 'New initiative' },
+    { key: '?', description: 'Show keyboard shortcuts' },
+    { key: 'Escape', description: 'Close any open dialog' },
+  ])
+})
+
+onUnmounted(() => {
+  unregisterShortcuts('Initiatives')
+})
 
 const initiativeCount = computed(() => initiativesStore.initiativeCount)
 

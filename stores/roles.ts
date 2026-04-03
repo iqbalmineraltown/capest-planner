@@ -27,13 +27,29 @@ export const useRolesStore = defineStore('roles', () => {
   const loadRoles = (): string[] => {
     if (typeof window === 'undefined') return [...DEFAULT_ROLES]
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : [...DEFAULT_ROLES]
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch {
+        console.warn('Failed to parse roles data, resetting to defaults')
+        return [...DEFAULT_ROLES]
+      }
+    }
+    return [...DEFAULT_ROLES]
   }
 
   const loadRoleColors = (): Record<string, string> => {
     if (typeof window === 'undefined') return { ...DEFAULT_ROLE_COLORS }
     const stored = localStorage.getItem(COLORS_STORAGE_KEY)
-    return stored ? { ...DEFAULT_ROLE_COLORS, ...JSON.parse(stored) } : { ...DEFAULT_ROLE_COLORS }
+    if (stored) {
+      try {
+        return { ...DEFAULT_ROLE_COLORS, ...JSON.parse(stored) }
+      } catch {
+        console.warn('Failed to parse role colors data, resetting to defaults')
+        return { ...DEFAULT_ROLE_COLORS }
+      }
+    }
+    return { ...DEFAULT_ROLE_COLORS }
   }
 
   const roles = ref<string[]>(loadRoles())

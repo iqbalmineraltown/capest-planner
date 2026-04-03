@@ -13,6 +13,9 @@
         @click="openCreateDialog"
       >
         Add Member
+        <v-tooltip activator="parent" location="bottom">
+          Add new member <kbd class="ml-1">m</kbd>
+        </v-tooltip>
       </v-btn>
     </div>
 
@@ -32,10 +35,10 @@
       <v-col cols="12" sm="4">
         <v-card variant="tonal" color="success">
           <v-card-text class="d-flex align-center">
-            <v-icon icon="mdi-clock-outline" size="large" class="mr-3" />
+            <v-icon icon="mdi-calendar-clock" size="large" class="mr-3" />
             <div>
-              <div class="text-h4 font-weight-bold">{{ totalAvailability }}</div>
-              <div class="text-caption text-grey-darken-1">Total Manweeks</div>
+              <div class="text-h4 font-weight-bold">{{ totalQuarterManweeks }}</div>
+              <div class="text-caption text-grey-darken-1">Total Quarter-Manweeks</div>
             </div>
           </v-card-text>
         </v-card>
@@ -109,6 +112,21 @@
       @delete="confirmDelete"
     />
 
+    <!-- Empty state (when not loading and no members at all) -->
+    <div v-if="!loading && membersStore.memberCount === 0" class="text-center py-8">
+      <v-icon size="80" color="grey-lighten-2">mdi-account-group</v-icon>
+      <h3 class="mt-4 text-grey-darken-1">No Team Members Yet</h3>
+      <p class="text-grey mt-1 mb-4">Add your first team member to start planning capacity.</p>
+      <v-btn
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-account-plus"
+        @click="openCreateDialog"
+      >
+        Add First Member
+      </v-btn>
+    </div>
+
     <!-- Form dialog -->
     <v-dialog v-model="dialogOpen" max-width="600" persistent>
       <v-card>
@@ -155,24 +173,66 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <KeyboardShortcutsDialog v-model="showShortcutsDialog" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useMembersStore } from '~/stores/members'
 import { useRolesStore } from '~/stores/roles'
 import { useToast } from '~/composables/useToast'
+import { useKeyboardShortcuts, useGlobalShortcuts } from '~/composables/useKeyboardShortcuts'
 import type { TeamMember } from '~/types'
 
 const membersStore = useMembersStore()
 const rolesStore = useRolesStore()
 const toast = useToast()
+const { registerShortcuts, unregisterShortcuts } = useGlobalShortcuts()
 
 // State
 const loading = ref(false)
 const searchQuery = ref('')
 const selectedRoles = ref<string[]>([])
+const showShortcutsDialog = ref(false)
+
+// Register keyboard shortcuts for this page
+useKeyboardShortcuts([
+  {
+    key: 'm',
+    description: 'New member',
+    handler: () => openCreateDialog(),
+  },
+  {
+    key: '?',
+    description: 'Show keyboard shortcuts',
+    handler: () => { showShortcutsDialog.value = !showShortcutsDialog.value },
+  },
+  {
+    key: 'Escape',
+    description: 'Close any open dialog',
+    handler: () => {
+      if (dialogOpen.value) closeDialog()
+      if (deleteDialogOpen.value) deleteDialogOpen.value = false
+      if (showShortcutsDialog.value) showShortcutsDialog.value = false
+    },
+    requireNoInput: false,
+  },
+])
+
+// Register page shortcuts for the global help dialog
+onMounted(() => {
+  registerShortcuts('Members', [
+    { key: 'm', description: 'New member' },
+    { key: '?', description: 'Show keyboard shortcuts' },
+    { key: 'Escape', description: 'Close any open dialog' },
+  ])
+})
+
+onUnmounted(() => {
+  unregisterShortcuts('Members')
+})
 
 // Filters
 const hasActiveFilters = computed(() =>
@@ -205,9 +265,11 @@ const editingMemberId = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const memberToDelete = ref<TeamMember | null>(null)
 
-// Computed stats
-const totalAvailability = computed(() =>
-  membersStore.members.reduce((sum, m) => sum + m.availability, 0)
+// Computed stats - sum all quarter availabilities
+const totalQuarterManweeks = computed(() =>
+  membersStore.members.reduce((sum, m) => {
+    return sum + Object.values(m.quarterAvailability).reduce((s, w) => s + w, 0)
+  }, 0)
 )
 
 const assignedCount = computed(() =>

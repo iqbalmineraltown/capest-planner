@@ -5,6 +5,11 @@
 export type RoleType = string
 
 /**
+ * Quarter availability mapping - quarter ID to manweeks
+ */
+export type QuarterAvailability = Record<string, number>
+
+/**
  * Team member in the capacity planning system
  */
 export interface TeamMember {
@@ -14,8 +19,8 @@ export interface TeamMember {
   name: string
   /** Roles the member can perform (multiple roles supported) */
   roles: RoleType[]
-  /** Available manweeks per quarter */
-  availability: number
+  /** Available manweeks per quarter (quarter ID -> manweeks) */
+  quarterAvailability: QuarterAvailability
   /** IDs of assigned initiatives */
   assignedInitiatives: string[]
 }

@@ -31,17 +31,22 @@ export function useSeedData() {
       quartersStore.addQuarter(new Date().getFullYear(), Math.floor(new Date().getMonth() / 3) + 1)
     }
 
-    // Seed Straw Hat Pirates crew members
+    // Get next quarter ID for some members
+    const nextQuarterId = incrementQuarter(currentQuarterId)
+
+    // Seed Straw Hat Pirates crew members with quarter-specific availability
     const defaultMembers = [
-      { name: 'Monkey D. Luffy', roles: ['BE', 'FE'], availability: 12 },      // Captain - versatile
-      { name: 'Roronoa Zoro', roles: ['BE'], availability: 13 },               // Swordsman - strong backend
-      { name: 'Nami', roles: ['FE'], availability: 10 },                       // Navigator - visualization
-      { name: 'Usopp', roles: ['MOBILE'], availability: 11 },                  // Sniper - ranged/mobile
-      { name: 'Sanji', roles: ['QA'], availability: 13 },                      // Cook - quality
-      { name: 'Tony Tony Chopper', roles: ['BE', 'QA'], availability: 12 },    // Doctor - backend & quality
-      { name: 'Nico Robin', roles: ['FE'], availability: 11 },                 // Archaeologist - data
-      { name: 'Franky', roles: ['BE'], availability: 13 },                     // Shipwright - builder
-      { name: 'Brook', roles: ['MOBILE'], availability: 10 },                  // Musician - communication
+      { name: 'Monkey D. Luffy', roles: ['BE', 'FE'], quarterAvailability: { [currentQuarterId]: 12 } },
+      { name: 'Roronoa Zoro', roles: ['BE'], quarterAvailability: { [currentQuarterId]: 13, [nextQuarterId]: 10 } },
+      { name: 'Nami', roles: ['FE'], quarterAvailability: { [currentQuarterId]: 10 } },
+      { name: 'Usopp', roles: ['MOBILE'], quarterAvailability: { [currentQuarterId]: 11, [nextQuarterId]: 8 } },
+      { name: 'Sanji', roles: ['QA'], quarterAvailability: { [currentQuarterId]: 13 } },
+      { name: 'Tony Tony Chopper', roles: ['BE', 'QA'], quarterAvailability: { [currentQuarterId]: 12 } },
+      { name: 'Nico Robin', roles: ['FE'], quarterAvailability: { [currentQuarterId]: 11, [nextQuarterId]: 13 } },
+      { name: 'Franky', roles: ['BE'], quarterAvailability: { [currentQuarterId]: 13 } },
+      { name: 'Brook', roles: ['MOBILE'], quarterAvailability: { [currentQuarterId]: 10, [nextQuarterId]: 12 } },
+      // Jinbe - only available next quarter (new crew member joining)
+      { name: 'Jinbe', roles: ['BE', 'QA'], quarterAvailability: { [nextQuarterId]: 13 } },
     ]
 
     const createdMembers: string[] = []
@@ -140,6 +145,20 @@ export function useSeedData() {
     if (typeof window !== 'undefined') {
       localStorage.setItem(SEED_FLAG_KEY, 'true')
     }
+  }
+
+  // Helper to get next quarter ID
+  function incrementQuarter(quarterId: string): string {
+    const match = quarterId.match(/Q(\d)-(\d{4})/)
+    if (!match) return quarterId
+    let q = parseInt(match[1])
+    let year = parseInt(match[2])
+    q++
+    if (q > 4) {
+      q = 1
+      year++
+    }
+    return `Q${q}-${year}`
   }
 
   function clearAllData() {

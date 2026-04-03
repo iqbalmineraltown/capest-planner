@@ -34,7 +34,7 @@
           />
         </div>
 
-        <!-- Member Cards -->
+        <!-- Member cards -->
         <div class="member-sidebar__list">
           <div
             v-for="member in filteredMembers"
@@ -66,9 +66,20 @@
               </div>
             </div>
 
+            <div class="member-pool-card__actions">
+              <v-btn
+                icon="mdi-cog"
+                size="x-small"
+                variant="text"
+                color="grey"
+                class="member-pool-card__gear"
+                @click.stop="$emit('edit-member', member.id)"
+              />
+            </div>
+
             <div class="member-pool-card__capacity">
               <div class="member-pool-card__capacity-text">
-                {{ getRemainingWeeks(member.id) }}/{{ member.availability }}w
+                {{ getRemainingWeeks(member.id) }}/{{ getQuarterAvailability(member.id) }}w
               </div>
               <div class="member-pool-card__capacity-bar">
                 <div
@@ -84,7 +95,7 @@
 
           <div v-if="filteredMembers.length === 0" class="member-sidebar__empty">
             <v-icon size="32" color="grey-lighten-1">mdi-account-off</v-icon>
-            <span>No members match</span>
+            <span>No members available for this quarter</span>
           </div>
         </div>
       </aside>
@@ -109,16 +120,26 @@
       <div v-if="initiatives.length === 0" class="board-empty">
         <v-icon size="80" color="grey-lighten-2">mdi-clipboard-text-outline</v-icon>
         <h3 class="mt-4 text-grey-darken-1">No Initiatives Yet</h3>
-        <p class="text-grey mt-1">Create initiatives to start planning capacity</p>
-        <v-btn
-          color="primary"
-          variant="tonal"
-          class="mt-4"
-          prepend-icon="mdi-plus"
-          to="/initiatives"
-        >
-          Add Initiative
-        </v-btn>
+        <p class="text-grey mt-1 mb-4">Create initiatives to start planning capacity on the board.</p>
+        <div class="d-flex flex-wrap justify-center ga-2">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            prepend-icon="mdi-plus"
+            to="/initiatives"
+          >
+            Add Initiative
+          </v-btn>
+          <v-btn
+            v-if="members.length === 0"
+            color="secondary"
+            variant="tonal"
+            prepend-icon="mdi-account-plus"
+            to="/members"
+          >
+            Add Members First
+          </v-btn>
+        </div>
       </div>
 
       <!-- Board with week header + swimlanes -->
@@ -133,7 +154,12 @@
               class="board-week-header__week"
               :class="{ 'board-week-header__week--carryover': week > totalWeeks - 2 }"
             >
-              W{{ week }}
+              <v-tooltip location="bottom" :open-delay="400">
+                <template #activator="{ props: tp }">
+                  <span v-bind="tp">W{{ week }}</span>
+                </template>
+                Week {{ week }} of {{ totalWeeks }}
+              </v-tooltip>
             </div>
           </div>
         </div>
@@ -162,7 +188,10 @@
 import { ref, computed } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
+import { useMembersStore } from '~/stores/members'
 import { calculateMemberQuarterCapacity } from '~/utils/capacityCalculator'
+import { getInitials } from '~/utils/colorUtils'
+import { getRoleHex } from '~/utils/colorUtils'
 import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
 import BoardRow from './BoardRow.vue'
 
@@ -175,9 +204,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   'edit-assignment': [payload: { initiative: Initiative; assignmentIndex: number }]
   'add-assignment': [payload: { initiative: Initiative; memberId?: string; role?: string; startWeek?: number } | Initiative]
+  'edit-member': [memberId: string]
 }>()
 
 const initiativesStore = useInitiativesStore()
+const membersStore = useMembersStore()
 const { dragState, startMemberDrag, endDrag } = useBoardDragDrop()
 
 const allInitiatives = computed(() => initiativesStore.initiatives)
@@ -187,10 +218,16 @@ const totalWeeks = computed(() => props.quarter?.totalWeeks || 13)
 const isSidebarOpen = ref(true)
 const memberSearch = ref('')
 
+// Filter members by quarter availability - only show members with availability > 0
 const availableMembers = computed(() => {
-  if (!props.quarter) return props.members
+  if (!props.quarter) return []
+  
   return props.members
     .filter((m) => {
+      // Only include members with availability in this quarter
+      const quarterAvail = m.quarterAvailability[props.quarter!.id] ?? 0
+      if (quarterAvail <= 0) return false
+      
       const cap = calculateMemberQuarterCapacity(m, initiativesStore.initiatives, props.quarter!.id)
       return cap.remaining > 0
     })
@@ -212,10 +249,6 @@ const filteredMembers = computed(() => {
 })
 
 // ─── Member helpers ─────────────────────────────────────────
-function getInitials(name: string): string {
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-}
-
 const avatarColors = [
   { bg: '#E3F2FD', fg: '#1565C0' },
   { bg: '#E8F5E9', fg: '#2E7D32' },
@@ -233,15 +266,11 @@ function getMemberAvatarColor(name: string): string {
   return avatarColors[name.charCodeAt(0) % avatarColors.length].fg
 }
 
-const roleHexMap: Record<string, string> = {
-  BE: '#1565C0',
-  FE: '#2E7D32',
-  MOBILE: '#E65100',
-  QA: '#7B1FA2',
-}
-
-function getRoleHex(role: string): string {
-  return roleHexMap[role.toUpperCase()] || '#546E7A'
+function getQuarterAvailability(memberId: string): number {
+  if (!props.quarter) return 0
+  const member = props.members.find((m) => m.id === memberId)
+  if (!member) return 0
+  return member.quarterAvailability[props.quarter.id] ?? 0
 }
 
 function getRemainingWeeks(memberId: string): number {
@@ -255,9 +284,11 @@ function getRemainingWeeks(memberId: string): number {
 function getCapacityPercent(memberId: string): number {
   if (!props.quarter) return 0
   const member = props.members.find((m) => m.id === memberId)
-  if (!member || member.availability === 0) return 0
+  if (!member) return 0
+  const availability = member.quarterAvailability[props.quarter.id] ?? 0
+  if (availability === 0) return 0
   const cap = calculateMemberQuarterCapacity(member, initiativesStore.initiatives, props.quarter.id)
-  return Math.min(100, (cap.allocated / member.availability) * 100)
+  return Math.min(100, (cap.allocated / availability) * 100)
 }
 
 function getCapacityBarColor(memberId: string): string {
@@ -331,9 +362,9 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 .member-sidebar {
   width: 280px;
   flex-shrink: 0;
-  background: #fff;
+  background: rgb(var(--v-theme-surface));
   border-radius: 16px;
-  border: 1px solid #e8ecf1;
+  border: 1px solid rgb(var(--v-theme-border));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -346,7 +377,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  border-bottom: 1px solid #e8ecf1;
+  border-bottom: 1px solid rgb(var(--v-theme-border));
 }
 
 .member-sidebar__title {
@@ -354,7 +385,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   align-items: center;
   font-size: 0.9rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .member-sidebar__search {
@@ -376,7 +407,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   align-items: center;
   gap: 8px;
   padding: 32px 16px;
-  color: #9e9e9e;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   font-size: 0.85rem;
 }
 
@@ -386,7 +417,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   align-items: center;
   justify-content: space-between;
   padding: 10px 12px;
-  background: #f8f9fb;
+  background: rgb(var(--v-theme-surface-variant));
   border-radius: 10px;
   cursor: grab;
   user-select: none;
@@ -395,13 +426,14 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
     box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.15s ease;
   border: 1px solid transparent;
+  gap: 8px;
 }
 
 .member-pool-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  background: #fff;
-  border-color: #e0e0e0;
+  background: rgb(var(--v-theme-surface));
+  border-color: rgb(var(--v-theme-border));
 }
 
 .member-pool-card:active {
@@ -421,6 +453,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   align-items: center;
   gap: 10px;
   min-width: 0;
+  flex: 1;
 }
 
 .member-pool-card__avatar {
@@ -444,7 +477,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 .member-pool-card__name {
   font-size: 0.82rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: rgb(var(--v-theme-on-surface));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -465,6 +498,21 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   border-radius: 4px;
 }
 
+.member-pool-card__actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.member-pool-card__gear {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.member-pool-card:hover .member-pool-card__gear {
+  opacity: 1;
+}
+
 .member-pool-card__capacity {
   display: flex;
   flex-direction: column;
@@ -475,14 +523,14 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 
 .member-pool-card__capacity-text {
   font-size: 0.7rem;
-  color: #666;
+  color: rgb(var(--v-theme-on-surface), 0.6);
   font-weight: 500;
 }
 
 .member-pool-card__capacity-bar {
   width: 48px;
   height: 4px;
-  background: #e0e0e0;
+  background: rgb(var(--v-theme-border));
   border-radius: 2px;
   overflow: hidden;
 }
@@ -536,10 +584,10 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 .board-week-header {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: rgb(var(--v-theme-surface));
   border-radius: 12px 12px 0 0;
-  border: 1px solid #e8ecf1;
-  border-bottom: 2px solid #e0e0e0;
+  border: 1px solid rgb(var(--v-theme-border));
+  border-bottom: 2px solid rgb(var(--v-theme-border));
   padding: 0;
   position: sticky;
   top: 0;
@@ -552,10 +600,10 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   padding: 10px 16px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #666;
+  color: rgb(var(--v-theme-on-surface), 0.6);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-right: 1px solid #e8ecf1;
+  border-right: 1px solid rgb(var(--v-theme-border));
 }
 
 .board-week-header__weeks {
@@ -571,14 +619,14 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #888;
+  color: rgb(var(--v-theme-on-surface), 0.45);
   padding: 4px 0;
   border-radius: 6px;
 }
 
 .board-week-header__week--carryover {
-  background: #fff8e1;
-  color: #f57f17;
+  background: rgb(var(--v-theme-carryover-bg));
+  color: rgb(var(--v-theme-carryover));
 }
 
 /* ─── Swimlanes container ────────────────────────────────── */
@@ -592,39 +640,39 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   gap: 0;
 }
 
-/* ═══ Dark theme ═══ */
-.v-theme--dark .member-sidebar {
-  background: #1e1e2e;
-  border-color: #2d2d44;
+/* ═══ Responsive ═══ */
+@media (max-width: 768px) {
+  .capacity-board-layout {
+    flex-direction: column;
+  }
+
+  .member-sidebar {
+    width: 100% !important;
+    max-height: 300px;
+  }
+
+  .board-week-header__label {
+    width: 100px;
+    min-width: 80px;
+    font-size: 0.7rem;
+    padding: 8px 10px;
+  }
+
+  .board-week-header__week {
+    flex: 0 0 80px;
+  }
 }
 
-.v-theme--dark .member-sidebar__title {
-  color: #e0e0e0;
-}
+@media (max-width: 480px) {
+  .board-week-header__label {
+    width: 60px;
+    min-width: 60px;
+    padding: 6px 8px;
+    font-size: 0.65rem;
+  }
 
-.v-theme--dark .member-pool-card {
-  background: #16213e;
-}
-
-.v-theme--dark .member-pool-card:hover {
-  background: #1a2744;
-  border-color: #3d3d5c;
-}
-
-.v-theme--dark .member-pool-card__name {
-  color: #e0e0e0;
-}
-
-.v-theme--dark .board-week-header {
-  background: #1e1e2e;
-  border-color: #2d2d44;
-}
-
-.v-theme--dark .board-week-header__label {
-  color: #9e9e9e;
-}
-
-.v-theme--dark .board-week-header__week {
-  color: #9e9e9e;
+  .board-week-header__week {
+    flex: 0 0 60px;
+  }
 }
 </style>

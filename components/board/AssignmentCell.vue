@@ -91,7 +91,7 @@ const initials = computed(() => {
 <style scoped>
 .assignment-card {
   position: relative;
-  background: #fff;
+  background: rgb(var(--v-theme-surface));
   border-radius: 8px;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.08),
@@ -180,7 +180,7 @@ const initials = computed(() => {
 .assignment-card__name {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #1a1a2e;
+  color: rgba(var(--v-theme-on-surface), 0.87);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -203,7 +203,7 @@ const initials = computed(() => {
 
 .assignment-card__weeks {
   font-size: 0.7rem;
-  color: #9e9e9e;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   font-weight: 500;
 }
 
@@ -216,20 +216,7 @@ const initials = computed(() => {
   50% { opacity: 1; }
 }
 
-/* Dark theme support */
-:root.dark .assignment-card,
-.v-theme--dark .assignment-card {
-  background: #1e1e2e;
-}
-
-.v-theme--dark .assignment-card__name {
-  color: #e0e0e0;
-}
-
-.v-theme--dark .assignment-card__weeks {
-  color: #9e9e9e;
-}
-
+/* Dark theme support — deeper shadows for visibility */
 .v-theme--dark .assignment-card:hover {
   box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.3),

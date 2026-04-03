@@ -56,3 +56,20 @@ export function stringToColor(str: string): string {
 export function getDarkShade(colorName: string): string {
   return `${colorName}-darken-1`
 }
+
+/**
+ * Default hex color map for built-in roles
+ */
+export const ROLE_HEX_MAP: Record<string, string> = {
+  BE: '#1565C0',
+  FE: '#2E7D32',
+  MOBILE: '#E65100',
+  QA: '#7B1FA2',
+}
+
+/**
+ * Get hex color for a role name
+ */
+export function getRoleHex(role: string): string {
+  return ROLE_HEX_MAP[role.toUpperCase()] || '#546E7A'
+}

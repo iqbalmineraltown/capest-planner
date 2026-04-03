@@ -1,18 +1,8 @@
 <template>
-  <div class="board-swimlane" :class="{ 'board-swimlane--collapsed': isCollapsed, 'board-swimlane--drag-active': isDragging }">
-    <!-- Swimlane Header -->
-    <div class="swimlane-header" @click="isCollapsed = !isCollapsed">
+  <div class="board-swimlane" :class="{ 'board-swimlane--drag-active': isDragging }">
+    <!-- Swimlane Header (no collapse toggle) -->
+    <div class="swimlane-header">
       <div class="swimlane-header__left">
-        <v-btn
-          icon
-          size="x-small"
-          variant="text"
-          class="swimlane-header__toggle"
-        >
-          <v-icon size="18">
-            {{ isCollapsed ? 'mdi-chevron-right' : 'mdi-chevron-down' }}
-          </v-icon>
-        </v-btn>
         <span class="swimlane-header__title">{{ initiative.name }}</span>
 
         <!-- Warning badge -->
@@ -58,21 +48,30 @@
 
       <!-- Role fulfillment pills -->
       <div class="swimlane-header__roles">
-        <div
+        <v-tooltip
           v-for="f in roleFulfillment"
           :key="f.role"
-          class="role-pill"
-          :style="{ '--role-color': getRoleHex(f.role) }"
+          location="top"
+          :open-delay="300"
         >
-          <span class="role-pill__label">{{ f.role }}</span>
-          <span class="role-pill__value">{{ f.assigned }}/{{ f.required }}w</span>
-          <div class="role-pill__bar">
+          <template #activator="{ props: rp }">
             <div
-              class="role-pill__fill"
-              :style="{ width: Math.min(100, f.percentage) + '%' }"
-            />
-          </div>
-        </div>
+              v-bind="rp"
+              class="role-pill"
+              :style="{ '--role-color': getRoleHex(f.role) }"
+            >
+              <span class="role-pill__label">{{ f.role }}</span>
+              <span class="role-pill__value">{{ f.assigned }}/{{ f.required }}w</span>
+              <div class="role-pill__bar">
+                <div
+                  class="role-pill__fill"
+                  :style="{ width: Math.min(100, f.percentage) + '%' }"
+                />
+              </div>
+            </div>
+          </template>
+          {{ f.role }}: {{ f.assigned }} of {{ f.required }} weeks assigned ({{ Math.round(f.percentage) }}%)
+        </v-tooltip>
       </div>
 
       <!-- Add assignment button -->
@@ -89,8 +88,8 @@
       </v-btn>
     </div>
 
-    <!-- Week columns (kanban) -->
-    <div v-show="!isCollapsed" class="swimlane-board">
+    <!-- Week columns (kanban) - always visible, no collapse -->
+    <div class="swimlane-board">
       <!-- Week column headers (inside swimlane for alignment) -->
       <div class="swimlane-weeks">
         <div
@@ -138,6 +137,7 @@
 import { ref, computed } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember, Assignment } from '~/types'
 import { checkCarryOver, getInitiativeWarnings, getRoleFulfillment } from '~/utils/capacityCalculator'
+import { getRoleHex } from '~/utils/colorUtils'
 import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
 import AssignmentCell from './AssignmentCell.vue'
 
@@ -167,7 +167,6 @@ const {
   getDropRole,
 } = useBoardDragDrop()
 
-const isCollapsed = ref(false)
 const totalWeeks = computed(() => props.quarter?.totalWeeks || 13)
 
 // Counter to fix HTML5 dragleave flicker on child elements
@@ -183,17 +182,6 @@ const warningCount = computed(() =>
   warnings.value.weekConflicts.length
 )
 const roleFulfillment = computed(() => getRoleFulfillment(props.initiative))
-
-// ─── Role colors ────────────────────────────────────────────
-const roleHexMap: Record<string, string> = {
-  BE: '#1565C0',
-  FE: '#2E7D32',
-  MOBILE: '#E65100',
-  QA: '#7B1FA2',
-}
-function getRoleHex(role: string): string {
-  return roleHexMap[role.toUpperCase()] || '#546E7A'
-}
 
 // ─── Helpers ────────────────────────────────────────────────
 function getMember(memberId: string): TeamMember | undefined {
@@ -313,9 +301,9 @@ function handleDragEnd() {
 
 <style scoped>
 .board-swimlane {
-  background: #f8f9fb;
+  background: rgb(var(--v-theme-surface-variant));
   border-radius: 12px;
-  border: 1px solid #e8ecf1;
+  border: 1px solid rgb(var(--v-theme-border));
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -330,15 +318,14 @@ function handleDragEnd() {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #e8ecf1;
-  cursor: pointer;
+  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgb(var(--v-theme-border));
   user-select: none;
   transition: background 0.15s ease;
 }
 
 .swimlane-header:hover {
-  background: #f0f4ff;
+  background: rgb(var(--v-theme-surface-variant));
 }
 
 .swimlane-header__left {
@@ -349,14 +336,10 @@ function handleDragEnd() {
   min-width: 200px;
 }
 
-.swimlane-header__toggle {
-  flex-shrink: 0;
-}
-
 .swimlane-header__title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: rgb(var(--v-theme-on-surface));
   white-space: nowrap;
 }
 
@@ -399,14 +382,14 @@ function handleDragEnd() {
 
 .role-pill__value {
   font-size: 0.7rem;
-  color: #666;
+  color: rgb(var(--v-theme-on-surface), 0.6);
   font-weight: 500;
 }
 
 .role-pill__bar {
   width: 40px;
   height: 4px;
-  background: #e0e0e0;
+  background: rgb(var(--v-theme-border));
   border-radius: 2px;
   overflow: hidden;
 }
@@ -435,7 +418,7 @@ function handleDragEnd() {
   flex: 0 0 120px;
   min-height: 60px;
   padding: 6px;
-  background: #f0f2f5;
+  background: rgb(var(--v-theme-surface));
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -449,24 +432,24 @@ function handleDragEnd() {
 
 /* When dragging anything, all week columns get a subtle "ready" state */
 .board-swimlane--drag-active .week-column {
-  border-color: rgba(25, 118, 210, 0.15);
-  background: #f5f8ff;
+  border-color: rgba(var(--v-theme-primary), 0.15);
+  background: rgb(var(--v-theme-surface-variant));
 }
 
 .week-column--drop-target {
-  background: #e3f2fd;
-  border-color: #1976D2;
-  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.15);
+  background: rgba(var(--v-theme-primary), 0.08);
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.15);
 }
 
 .week-column--carryover {
-  background: #fff8e1;
+  background: rgba(var(--v-theme-warning), 0.06);
 }
 
 .week-column__label {
   font-size: 0.65rem;
   font-weight: 600;
-  color: #aaa;
+  color: rgb(var(--v-theme-on-surface), 0.4);
   text-align: center;
   padding: 2px 0;
   line-height: 1;
@@ -474,7 +457,7 @@ function handleDragEnd() {
 }
 
 .week-column--drop-target .week-column__label {
-  color: #1976D2;
+  color: rgb(var(--v-theme-primary));
   font-weight: 700;
 }
 
@@ -485,16 +468,16 @@ function handleDragEnd() {
   justify-content: center;
   gap: 2px;
   padding: 8px 4px;
-  border: 2px dashed #1976D2;
+  border: 2px dashed rgb(var(--v-theme-primary));
   border-radius: 8px;
-  background: rgba(25, 118, 210, 0.06);
+  background: rgba(var(--v-theme-primary), 0.06);
   animation: pulse-glow 1.2s ease-in-out infinite;
 }
 
 .week-column__drop-text {
   font-size: 0.6rem;
   font-weight: 600;
-  color: #1976D2;
+  color: rgb(var(--v-theme-primary));
   letter-spacing: 0.3px;
 }
 
@@ -503,40 +486,59 @@ function handleDragEnd() {
   50% { opacity: 1; }
 }
 
-/* ─── Collapsed ───────────────────────────────────────────── */
-.board-swimlane--collapsed .swimlane-header {
-  border-bottom: none;
+/* ─── Responsive ────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .swimlane-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .swimlane-header__left {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .swimlane-header__title {
+    font-size: 0.85rem;
+  }
+
+  .swimlane-header__roles {
+    padding: 0 4px;
+    gap: 6px;
+  }
+
+  .role-pill {
+    padding: 2px 6px;
+    font-size: 0.6rem;
+  }
+
+  .week-column {
+    flex: 0 0 80px;
+    min-height: 50px;
+    padding: 4px;
+  }
 }
 
-/* ─── Dark theme ──────────────────────────────────────────── */
-.v-theme--dark .board-swimlane {
-  background: #1a1a2e;
-  border-color: #2d2d44;
-}
+@media (max-width: 480px) {
+  .swimlane-header__left {
+    min-width: 0;
+  }
 
-.v-theme--dark .swimlane-header {
-  background: #16213e;
-  border-bottom-color: #2d2d44;
-}
+  .week-column {
+    flex: 0 0 60px;
+    min-height: 44px;
+    padding: 3px;
+  }
 
-.v-theme--dark .swimlane-header:hover {
-  background: #1a2744;
-}
+  .assignment-card__body {
+    padding: 4px 6px 4px 10px;
+  }
 
-.v-theme--dark .swimlane-header__title {
-  color: #e0e0e0;
-}
-
-.v-theme--dark .week-column {
-  background: #16213e;
-}
-
-.v-theme--dark .week-column--drop-target {
-  background: #1a2744;
-  border-color: #42a5f5;
-}
-
-.v-theme--dark .week-column--carryover {
-  background: #2d2416;
+  .assignment-card__avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.55rem;
+  }
 }
 </style>

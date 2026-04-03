@@ -16,6 +16,9 @@ export function calculateMemberQuarterCapacity(
   initiatives: Initiative[],
   quarterId: string
 ): MemberCapacity {
+  // Get availability for this specific quarter
+  const availability = member.quarterAvailability[quarterId] ?? 0
+
   // Get all assignments for this member in this quarter
   const memberInitiatives = initiatives.filter(
     (i) => i.quarter === quarterId && i.assignments.some((a) => a.memberId === member.id)
@@ -30,12 +33,12 @@ export function calculateMemberQuarterCapacity(
     }
   }
 
-  const remaining = member.availability - allocated
+  const remaining = availability - allocated
 
   return {
     memberId: member.id,
     memberName: member.name,
-    available: member.availability,
+    available: availability,
     allocated,
     remaining,
     isOverAllocated: remaining < 0,
@@ -98,11 +101,19 @@ export function calculateQuarterCapacitySummary(
   initiatives: Initiative[],
   quarterConfig: QuarterConfig
 ): QuarterCapacitySummary {
-  const memberCapacities = members.map((member) =>
+  // Only include members who have availability in this quarter
+  const quarterMembers = members.filter(
+    (m) => (m.quarterAvailability[quarterConfig.id] ?? 0) > 0
+  )
+
+  const memberCapacities = quarterMembers.map((member) =>
     calculateMemberQuarterCapacity(member, initiatives, quarterConfig.id)
   )
 
-  const totalAvailable = members.reduce((sum, m) => sum + m.availability, 0)
+  const totalAvailable = quarterMembers.reduce(
+    (sum, m) => sum + (m.quarterAvailability[quarterConfig.id] ?? 0),
+    0
+  )
   const totalAllocated = memberCapacities.reduce((sum, c) => sum + c.allocated, 0)
 
   const overAllocatedMembers = memberCapacities
@@ -150,7 +161,7 @@ export function calculateQuarterCapacitySummary(
  * Check if an assignment spans beyond the quarter
  */
 export function checkCarryOver(
-  assignment: Assignment,
+  assignment: Pick<Assignment, 'startWeek' | 'weeksAllocated'>,
   quarterConfig: QuarterConfig
 ): { carriesOver: boolean; carriedWeeks: number; inQuarterWeeks: number } {
   const endWeek = assignment.startWeek + assignment.weeksAllocated - 1
@@ -174,7 +185,7 @@ export function checkCarryOver(
 }
 
 /**
- * Get members available for a specific role
+ * Get members available for a specific role in a quarter
  */
 export function getAvailableMembersForRole(
   members: TeamMember[],
@@ -183,7 +194,11 @@ export function getAvailableMembersForRole(
   quarterId: string
 ): Array<{ member: TeamMember; currentAllocation: number; remainingCapacity: number }> {
   return members
-    .filter((m) => m.roles.includes(role))
+    .filter((m) => {
+      // Must have the role AND have availability in this quarter
+      const quarterAvail = m.quarterAvailability[quarterId] ?? 0
+      return m.roles.includes(role) && quarterAvail > 0
+    })
     .map((member) => {
       const capacity = calculateMemberQuarterCapacity(member, initiatives, quarterId)
       return {

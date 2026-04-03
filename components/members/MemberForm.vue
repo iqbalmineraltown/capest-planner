@@ -40,22 +40,80 @@
       </div>
     </div>
 
-    <!-- Availability input -->
-    <v-text-field
-      v-model.number="formData.availability"
-      label="Availability (manweeks) *"
-      type="number"
-      min="1"
-      max="13"
-      placeholder="1-13"
-      :rules="availabilityRules"
-      variant="outlined"
-      prepend-inner-icon="mdi-clock-outline"
-      required
-      hint="Number of manweeks available per quarter (1-13)"
-      persistent-hint
-      class="mb-4"
-    />
+    <!-- Quarter Availability Section -->
+    <div class="mb-3">
+      <div class="d-flex align-center justify-space-between mb-2">
+        <div class="d-flex align-center">
+          <v-label class="d-block">Quarter Availability (manweeks)</v-label>
+          <v-tooltip location="top" :open-delay="200" max-width="280">
+            <template #activator="{ props: tp }">
+              <v-icon v-bind="tp" size="18" color="grey" class="ml-2">mdi-help-circle-outline</v-icon>
+            </template>
+            Specify how many weeks a member is available in each quarter. Only members with availability &gt; 0 appear on the capacity board.
+          </v-tooltip>
+        </div>
+        <v-btn
+          size="x-small"
+          variant="text"
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="showAddQuarterDialog = true"
+        >
+          Add Quarter
+        </v-btn>
+      </div>
+      
+      <v-card variant="outlined" class="quarter-availability-card">
+        <v-list density="compact" v-if="availableQuarters.length > 0">
+          <v-list-item
+            v-for="quarter in availableQuarters"
+            :key="quarter.id"
+            class="px-2"
+          >
+            <template #prepend>
+              <v-chip size="small" color="primary" variant="tonal" class="mr-2">
+                {{ quarter.label }}
+              </v-chip>
+            </template>
+            
+            <v-text-field
+              v-model.number="formData.quarterAvailability[quarter.id]"
+              type="number"
+              min="0"
+              max="13"
+              density="compact"
+              variant="outlined"
+              :rules="quarterAvailabilityRules"
+              placeholder="0"
+              style="max-width: 100px;"
+              class="ml-2"
+            >
+              <template #append-inner>
+                <span class="text-caption text-grey">weeks</span>
+              </template>
+            </v-text-field>
+
+            <template #append>
+              <v-btn
+                icon="mdi-close"
+                size="x-small"
+                variant="text"
+                color="grey"
+                @click="removeQuarterAvailability(quarter.id)"
+              />
+            </template>
+          </v-list-item>
+        </v-list>
+        
+        <v-card-text v-else class="text-center text-grey py-4">
+          <v-icon size="32" class="mb-2">mdi-calendar-blank</v-icon>
+          <div>No quarters configured. Add a quarter to set availability.</div>
+        </v-card-text>
+      </v-card>
+      <div class="text-caption text-grey-darken-1 mt-1">
+        Set available manweeks for each quarter. Members will only appear on boards for quarters where availability &gt; 0.
+      </div>
+    </div>
 
     <!-- Actions -->
     <div class="d-flex justify-end ga-2">
@@ -75,14 +133,45 @@
         {{ isEditing ? 'Save Changes' : 'Add Member' }}
       </v-btn>
     </div>
+
+    <!-- Add Quarter Dialog -->
+    <v-dialog v-model="showAddQuarterDialog" max-width="400">
+      <v-card>
+        <v-card-title class="text-h6">Add Quarter Availability</v-card-title>
+        <v-card-text>
+          <v-select
+            v-model="selectedNewQuarter"
+            :items="unconfiguredQuarters"
+            item-title="label"
+            item-value="id"
+            label="Select Quarter"
+            variant="outlined"
+            return-object
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showAddQuarterDialog = false">Cancel</v-btn>
+          <v-btn 
+            color="primary" 
+            variant="elevated"
+            :disabled="!selectedNewQuarter"
+            @click="addQuarterAvailability"
+          >
+            Add
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-form>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { TeamMember } from '~/types'
+import type { TeamMember, QuarterConfig } from '~/types'
 import { useRolesStore } from '~/stores/roles'
 import { useMembersStore } from '~/stores/members'
+import { useQuartersStore } from '~/stores/quarters'
 
 interface Props {
   memberId?: string | null
@@ -97,9 +186,12 @@ const emit = defineEmits<{
 
 const rolesStore = useRolesStore()
 const membersStore = useMembersStore()
+const quartersStore = useQuartersStore()
 
 const formRef = ref()
 const submitting = ref(false)
+const showAddQuarterDialog = ref(false)
+const selectedNewQuarter = ref<QuarterConfig | null>(null)
 
 // Available roles from store
 const availableRoles = computed(() => rolesStore.roles)
@@ -111,11 +203,27 @@ const isEditing = computed(() => !!props.memberId)
 const formData = ref<{
   name: string
   roles: string[]
-  availability: number
+  quarterAvailability: Record<string, number>
 }>({
   name: '',
   roles: [],
-  availability: 10,
+  quarterAvailability: {},
+})
+
+// Get quarters that have availability configured
+const availableQuarters = computed(() => {
+  const quarterIds = Object.keys(formData.value.quarterAvailability)
+  return quartersStore.quarters
+    .filter(q => quarterIds.includes(q.id))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
+// Get quarters that don't have availability configured yet
+const unconfiguredQuarters = computed(() => {
+  const configuredIds = Object.keys(formData.value.quarterAvailability)
+  return quartersStore.quarters
+    .filter(q => !configuredIds.includes(q.id))
+    .sort((a, b) => a.label.localeCompare(b.label))
 })
 
 // Load member data for editing
@@ -126,7 +234,7 @@ watch(() => props.memberId, (newId) => {
       formData.value = {
         name: member.name,
         roles: [...member.roles],
-        availability: member.availability,
+        quarterAvailability: { ...member.quarterAvailability },
       }
     }
   } else {
@@ -137,17 +245,27 @@ watch(() => props.memberId, (newId) => {
 // Validation rules
 const nameRules = [
   (v: string) => !!v?.trim() || 'Name is required',
-  (v: string) => (v?.length ?? 0) >= 2 || 'Name must be at least 2 characters',
+  (v: string) => (v?.trim()?.length ?? 0) >= 2 || 'Name must be at least 2 characters',
+  (v: string) => {
+    if (!v?.trim()) return true // handled by required rule
+    const trimmed = v.trim().toLowerCase()
+    const existing = membersStore.members.filter(m =>
+      m.name.toLowerCase() === trimmed && m.id !== props.memberId
+    )
+    return existing.length === 0 || 'A member with this name already exists'
+  },
 ]
 
 const roleRules = [
   (v: string[]) => (v?.length ?? 0) > 0 || 'At least one role is required',
 ]
 
-const availabilityRules = [
-  (v: number) => v !== null && v !== undefined || 'Availability is required',
-  (v: number) => v >= 1 || 'Minimum availability is 1 manweek',
-  (v: number) => v <= 13 || 'Maximum availability is 13 manweeks',
+const quarterAvailabilityRules = [
+  (v: number | string) => {
+    if (v === undefined || v === null || v === '' || v === '') return true
+    const num = Number(v)
+    return (!isNaN(num) && num >= 0) || 'Availability must be a positive number'
+  },
 ]
 
 // Get color for role
@@ -166,9 +284,23 @@ function resetForm() {
   formData.value = {
     name: '',
     roles: [],
-    availability: 10,
+    quarterAvailability: {},
   }
   formRef.value?.resetValidation()
+}
+
+// Add quarter availability
+function addQuarterAvailability() {
+  if (selectedNewQuarter.value) {
+    formData.value.quarterAvailability[selectedNewQuarter.value.id] = 10
+    selectedNewQuarter.value = null
+    showAddQuarterDialog.value = false
+  }
+}
+
+// Remove quarter availability
+function removeQuarterAvailability(quarterId: string) {
+  delete formData.value.quarterAvailability[quarterId]
 }
 
 // Handle form submission
@@ -194,7 +326,7 @@ async function handleSubmit() {
       membersStore.updateMember(props.memberId, {
         name: formData.value.name.trim(),
         roles: formData.value.roles,
-        availability: formData.value.availability,
+        quarterAvailability: { ...formData.value.quarterAvailability },
       })
       member = membersStore.getMemberById(props.memberId)!
     } else {
@@ -202,7 +334,7 @@ async function handleSubmit() {
       member = membersStore.addMember({
         name: formData.value.name.trim(),
         roles: formData.value.roles,
-        availability: formData.value.availability,
+        quarterAvailability: { ...formData.value.quarterAvailability },
       })
     }
 
@@ -213,3 +345,10 @@ async function handleSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.quarter-availability-card {
+  max-height: 300px;
+  overflow-y: auto;
+}
+</style>

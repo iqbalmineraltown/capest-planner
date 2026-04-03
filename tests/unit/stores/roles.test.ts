@@ -241,5 +241,117 @@ describe('rolesStore', () => {
       const color2 = store.getRoleColor('ROLE2')
       expect(color1).not.toBe(color2)
     })
+
+    it('should cycle through all custom palette colors', () => {
+      const store = useRolesStore()
+
+      const colors: string[] = []
+      // The custom palette has 12 colors
+      for (let i = 0; i < 12; i++) {
+        store.addRole(`custom_role_${i}`)
+        colors.push(store.getRoleColor(`CUSTOM_ROLE_${i}`))
+      }
+
+      // All colors should be from the custom palette (not blue, green, orange, purple)
+      for (const color of colors) {
+        expect(['blue', 'green', 'orange', 'purple']).not.toContain(color)
+      }
+    })
+  })
+
+  describe('removeRole - color cleanup', () => {
+    it('should remove color when removing custom role', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+      const devopsColor = store.getRoleColor('DEVOPS')
+
+      store.removeRole('DEVOPS')
+
+      // Color should be gone — getRoleColor returns 'grey' for missing
+      expect(store.getRoleColor('DEVOPS')).toBe('grey')
+      // Color should no longer be in roleColors map
+      expect(store.roleColors['DEVOPS']).toBeUndefined()
+    })
+
+    it('should not affect other roles when removing one', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+      store.addRole('platform')
+
+      const platformColor = store.getRoleColor('PLATFORM')
+
+      store.removeRole('DEVOPS')
+
+      expect(store.roles).toContain('PLATFORM')
+      expect(store.getRoleColor('PLATFORM')).toBe(platformColor)
+    })
+  })
+
+  describe('renameRole - edge cases', () => {
+    it('should preserve color through rename', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+      const originalColor = store.getRoleColor('DEVOPS')
+
+      store.renameRole('DEVOPS', 'sre')
+
+      expect(store.getRoleColor('SRE')).toBe(originalColor)
+      expect(store.roleColors['DEVOPS']).toBeUndefined()
+    })
+
+    it('should not rename to whitespace-only name', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+
+      const result = store.renameRole('DEVOPS', '   ')
+
+      expect(result).toBe(false)
+      expect(store.roles).toContain('DEVOPS')
+    })
+
+    it('should not rename non-existent role', () => {
+      const store = useRolesStore()
+
+      const result = store.renameRole('NONEXISTENT', 'SOMETHING')
+
+      expect(result).toBe(false)
+    })
+
+    it('should normalize new name to uppercase', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+
+      store.renameRole('DEVOPS', 'platform')
+
+      expect(store.roles).toContain('PLATFORM')
+      expect(store.roles).not.toContain('platform')
+    })
+  })
+
+  describe('addRole - color assignment', () => {
+    it('should assign a color from the custom palette', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+
+      const color = store.roleColors['DEVOPS']
+      expect(color).toBeDefined()
+      // Should be a color from the custom palette
+      const customPalette = [
+        'teal', 'red', 'pink', 'indigo', 'cyan', 'lime',
+        'amber', 'deep-orange', 'brown', 'blue-grey', 'light-blue', 'deep-purple',
+      ]
+      expect(customPalette).toContain(color)
+    })
+
+    it('should not overwrite manually set color when re-adding', () => {
+      const store = useRolesStore()
+      store.addRole('devops')
+      store.updateRoleColor('DEVOPS', 'gold')
+
+      // Trying to add same role again — should be no-op
+      store.addRole('devops')
+
+      expect(store.getRoleColor('DEVOPS')).toBe('gold')
+    })
   })
 })

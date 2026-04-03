@@ -26,14 +26,14 @@ describe('capacityCalculator', () => {
       id: 'member-1',
       name: 'John Doe',
       roles: ['BE', 'FE'],
-      availability: 13,
+      quarterAvailability: { 'Q1-2025': 13 },
       assignedInitiatives: ['initiative-1'],
     },
     {
       id: 'member-2',
       name: 'Jane Smith',
       roles: ['QA'],
-      availability: 10,
+      quarterAvailability: { 'Q1-2025': 10 },
       assignedInitiatives: [],
     },
   ]
@@ -114,6 +114,17 @@ describe('capacityCalculator', () => {
 
       expect(capacity.isOverAllocated).toBe(true)
       expect(capacity.remaining).toBe(-5)
+    })
+
+    it('should return 0 availability for quarter not configured', () => {
+      const capacity = calculateMemberQuarterCapacity(
+        mockMembers[0],
+        mockInitiatives,
+        'Q2-2025'
+      )
+
+      expect(capacity.available).toBe(0)
+      expect(capacity.remaining).toBe(0) // 0 available, 0 allocated (initiatives in different quarter)
     })
   })
 
@@ -202,12 +213,40 @@ describe('capacityCalculator', () => {
       expect(qaUnassigned).toBeDefined()
       expect(qaUnassigned?.effort).toBe(4)
     })
+
+    it('should only include members with availability in the quarter', () => {
+      const membersWithPartialAvailability: TeamMember[] = [
+        {
+          id: 'member-1',
+          name: 'John Doe',
+          roles: ['BE'],
+          quarterAvailability: { 'Q1-2025': 13 },
+          assignedInitiatives: [],
+        },
+        {
+          id: 'member-2',
+          name: 'Jane Smith',
+          roles: ['QA'],
+          quarterAvailability: { 'Q2-2025': 10 }, // Only available in Q2
+          assignedInitiatives: [],
+        },
+      ]
+
+      const summary = calculateQuarterCapacitySummary(
+        membersWithPartialAvailability,
+        mockInitiatives,
+        mockQuarter
+      )
+
+      expect(summary.memberCapacities).toHaveLength(1)
+      expect(summary.memberCapacities[0].memberId).toBe('member-1')
+    })
   })
 
   describe('checkCarryOver', () => {
     it('should detect no carry over when assignment fits in quarter', () => {
       const result = checkCarryOver(
-        { memberId: 'member-1', role: 'BE', startWeek: 1, weeksAllocated: 8, isParallel: false },
+        { startWeek: 1, weeksAllocated: 8 },
         mockQuarter
       )
 
@@ -217,7 +256,7 @@ describe('capacityCalculator', () => {
 
     it('should detect carry over when assignment exceeds quarter', () => {
       const result = checkCarryOver(
-        { memberId: 'member-1', role: 'BE', startWeek: 10, weeksAllocated: 8, isParallel: false },
+        { startWeek: 10, weeksAllocated: 8 },
         mockQuarter
       )
 
@@ -246,6 +285,27 @@ describe('capacityCalculator', () => {
         mockMembers,
         'MOBILE',
         mockInitiatives,
+        'Q1-2025'
+      )
+
+      expect(available).toHaveLength(0)
+    })
+
+    it('should exclude members without availability in the quarter', () => {
+      const partialMembers: TeamMember[] = [
+        {
+          id: 'member-1',
+          name: 'John Doe',
+          roles: ['BE'],
+          quarterAvailability: { 'Q2-2025': 10 }, // Not available in Q1
+          assignedInitiatives: [],
+        },
+      ]
+
+      const available = getAvailableMembersForRole(
+        partialMembers,
+        'BE',
+        [],
         'Q1-2025'
       )
 
@@ -294,6 +354,301 @@ describe('capacityCalculator', () => {
         'Q1-2025',
         'initiative-1',
         0
+      )
+
+      expect(result.hasConflict).toBe(false)
+    })
+
+    it('should detect no conflict when member has no other assignments', () => {
+      const result = checkWeekConflicts(
+        'member-2', // member-2 is not assigned to mockInitiatives
+        1,
+        5,
+        mockInitiatives,
+        'Q1-2025'
+      )
+
+      expect(result.hasConflict).toBe(false)
+      expect(result.conflicts).toHaveLength(0)
+    })
+
+    it('should detect complete overlap (same weeks)', () => {
+      // Member 1 is on weeks 1-8 in initiative-1
+      // Check same weeks for initiative-2
+      const result = checkWeekConflicts(
+        'member-1',
+        1,
+        8,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflictingWeeks).toEqual([1, 2, 3, 4, 5, 6, 7, 8])
+    })
+
+    it('should detect partial overlap at the end', () => {
+      // Member 1 is on weeks 1-8
+      // Check weeks 6-10 — overlap at weeks 6, 7, 8
+      const result = checkWeekConflicts(
+        'member-1',
+        6,
+        5,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflictingWeeks).toEqual([6, 7, 8])
+    })
+
+    it('should detect partial overlap at the start', () => {
+      // Member 1 is on weeks 1-8
+      // Check weeks 5-7 — all overlap
+      const result = checkWeekConflicts(
+        'member-1',
+        5,
+        3,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflictingWeeks).toEqual([5, 6, 7])
+    })
+
+    it('should not conflict when new assignment ends before existing starts', () => {
+      // Member 1 is on weeks 1-8
+      // Check weeks 9-12 — no overlap
+      const result = checkWeekConflicts(
+        'member-1',
+        9,
+        4,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(false)
+    })
+
+    it('should not conflict when new assignment starts after existing ends', () => {
+      // Member 1 is on weeks 5-8 (startWeek=5, weeksAllocated=4)
+      const customInitiatives: Initiative[] = [
+        {
+          id: 'initiative-x',
+          name: 'Custom',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 4, startWeek: 5, isParallel: false },
+          ],
+        },
+      ]
+
+      // Check weeks 1-4 — ends before existing starts
+      const result = checkWeekConflicts(
+        'member-1',
+        1,
+        4,
+        customInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(false)
+    })
+
+    it('should ignore initiatives in different quarters', () => {
+      const multiQuarterInitiatives: Initiative[] = [
+        {
+          id: 'init-q2',
+          name: 'Q2 Project',
+          description: '',
+          quarter: 'Q2-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 8, startWeek: 1, isParallel: false },
+          ],
+        },
+      ]
+
+      // Check Q1 — should not conflict with Q2 assignment
+      const result = checkWeekConflicts(
+        'member-1',
+        1,
+        8,
+        multiQuarterInitiatives,
+        'Q1-2025'
+      )
+
+      expect(result.hasConflict).toBe(false)
+    })
+
+    it('should detect conflicts across multiple initiatives', () => {
+      const multiInitiatives: Initiative[] = [
+        {
+          id: 'init-a',
+          name: 'Project A',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 3, startWeek: 1, isParallel: false },
+          ],
+        },
+        {
+          id: 'init-b',
+          name: 'Project B',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 3, startWeek: 5, isParallel: false },
+          ],
+        },
+      ]
+
+      // Check weeks 2-6 — overlaps both
+      const result = checkWeekConflicts(
+        'member-1',
+        2,
+        5,
+        multiInitiatives,
+        'Q1-2025',
+        'init-c'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflicts).toHaveLength(2)
+      // Weeks 2,3 from init-a; weeks 5,6 from init-b
+      expect(result.conflictingWeeks).toEqual([2, 3, 5, 6])
+    })
+
+    it('should deduplicate conflicting weeks', () => {
+      const multiInitiatives: Initiative[] = [
+        {
+          id: 'init-a',
+          name: 'Project A',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 4, startWeek: 1, isParallel: false },
+          ],
+        },
+        {
+          id: 'init-b',
+          name: 'Project B',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 4, startWeek: 3, isParallel: false },
+          ],
+        },
+      ]
+
+      // Check weeks 1-6 — overlaps both, weeks 3-4 appear in both
+      const result = checkWeekConflicts(
+        'member-1',
+        1,
+        6,
+        multiInitiatives,
+        'Q1-2025',
+        'init-c'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      // Weeks should be deduplicated and sorted
+      expect(result.conflictingWeeks).toEqual([1, 2, 3, 4, 5, 6])
+    })
+
+    it('should return conflict details with initiative names', () => {
+      const result = checkWeekConflicts(
+        'member-1',
+        3,
+        4,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.conflicts).toHaveLength(1)
+      expect(result.conflicts[0].initiativeId).toBe('initiative-1')
+      expect(result.conflicts[0].initiativeName).toBe('Project Alpha')
+      expect(result.conflicts[0].weeks).toContain(3)
+    })
+
+    it('should skip excluded initiative entirely', () => {
+      const multiInitiatives: Initiative[] = [
+        {
+          id: 'init-a',
+          name: 'Project A',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 4, startWeek: 1, isParallel: false },
+          ],
+        },
+        {
+          id: 'init-b',
+          name: 'Project B',
+          description: '',
+          quarter: 'Q1-2025',
+          roleRequirements: [],
+          assignments: [
+            { memberId: 'member-1', role: 'BE', weeksAllocated: 4, startWeek: 5, isParallel: false },
+          ],
+        },
+      ]
+
+      // Exclude init-a entirely — should still conflict with init-b on weeks 5-6
+      const result = checkWeekConflicts(
+        'member-1',
+        5,
+        4,
+        multiInitiatives,
+        'Q1-2025',
+        'init-a'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflicts).toHaveLength(1)
+      expect(result.conflicts[0].initiativeId).toBe('init-b')
+    })
+
+    it('should handle 1-week allocations', () => {
+      // Member 1 is on weeks 1-8 (from mockInitiatives)
+      // Check just week 5
+      const result = checkWeekConflicts(
+        'member-1',
+        5,
+        1,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
+      )
+
+      expect(result.hasConflict).toBe(true)
+      expect(result.conflictingWeeks).toEqual([5])
+    })
+
+    it('should handle non-overlapping 1-week allocations', () => {
+      // Member 1 is on weeks 1-8
+      // Check just week 10
+      const result = checkWeekConflicts(
+        'member-1',
+        10,
+        1,
+        mockInitiatives,
+        'Q1-2025',
+        'initiative-2'
       )
 
       expect(result.hasConflict).toBe(false)

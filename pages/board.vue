@@ -44,6 +44,7 @@
       :members="membersStore.members"
       @edit-assignment="openAssignmentDialog"
       @add-assignment="handleAddAssignment"
+      @edit-member="openMemberEditDialog"
     />
 
     <!-- Add Quarter Dialog -->
@@ -106,6 +107,25 @@
       @save="handleSaveAssignment"
       @delete="handleDeleteAssignment"
     />
+
+    <!-- Member Edit Dialog -->
+    <v-dialog v-model="showMemberDialog" max-width="600" persistent>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <span class="text-h5">Edit Team Member</span>
+          <v-spacer />
+          <v-btn icon="mdi-close" variant="text" @click="closeMemberDialog" />
+        </v-card-title>
+
+        <v-card-text>
+          <MemberForm
+            :member-id="editingMemberId"
+            @submit="handleMemberSubmit"
+            @cancel="closeMemberDialog"
+          />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -119,6 +139,7 @@ import { calculateQuarterCapacitySummary } from '~/utils/capacityCalculator'
 import CapacityBoard from '~/components/board/CapacityBoard.vue'
 import QuarterSummary from '~/components/board/QuarterSummary.vue'
 import AssignmentDialog from '~/components/board/AssignmentDialog.vue'
+import MemberForm from '~/components/members/MemberForm.vue'
 import { useToast } from '~/composables/useToast'
 
 const quartersStore = useQuartersStore()
@@ -130,9 +151,11 @@ const toast = useToast()
 const selectedQuarterId = ref<string>(quartersStore.currentQuarter?.id || '')
 const showAddQuarterDialog = ref(false)
 const showAssignmentDialog = ref(false)
+const showMemberDialog = ref(false)
 const selectedInitiative = ref<Initiative | null>(null)
 const editingAssignment = ref<Assignment | null>(null)
 const editingAssignmentIndex = ref<number>(-1)
+const editingMemberId = ref<string | null>(null)
 const initialMemberId = ref<string>('')
 const initialRole = ref<string>('')
 const initialStartWeek = ref<number>(1)
@@ -242,6 +265,22 @@ function handleDeleteAssignment() {
   initialRole.value = ''
   initialStartWeek.value = 1
 }
+
+// Member edit handlers
+function openMemberEditDialog(memberId: string) {
+  editingMemberId.value = memberId
+  showMemberDialog.value = true
+}
+
+function closeMemberDialog() {
+  showMemberDialog.value = false
+  editingMemberId.value = null
+}
+
+function handleMemberSubmit() {
+  toast.success('Member updated successfully')
+  closeMemberDialog()
+}
 </script>
 
 <style scoped>
@@ -269,14 +308,14 @@ function handleDeleteAssignment() {
 .board-page__title {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #1a1a2e;
+  color: rgb(var(--v-theme-on-background));
   margin: 0;
   letter-spacing: -0.3px;
 }
 
 .board-page__subtitle {
   font-size: 0.88rem;
-  color: #9e9e9e;
+  color: rgb(var(--v-theme-on-background), 0.5);
   margin: 2px 0 0;
 }
 
@@ -286,7 +325,21 @@ function handleDeleteAssignment() {
   align-items: center;
 }
 
-.v-theme--dark .board-page__title {
-  color: #e0e0e0;
+/* Responsive: stack header on small screens */
+@media (max-width: 768px) {
+  .board-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .board-page__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .board-page__actions .v-select {
+    min-width: 120px !important;
+    flex: 1;
+  }
 }
 </style>

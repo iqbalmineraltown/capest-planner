@@ -109,7 +109,7 @@ export function useCapacityCalc() {
   }) => {
     const quarter = quartersStore.getQuarterById(quarterId)
     if (!quarter) return { carriesOver: false, carriedWeeks: 0, inQuarterWeeks: assignment.weeksAllocated }
-    return checkCarryOver(assignment as any, quarter)
+    return checkCarryOver(assignment, quarter)
   }
 
   return {

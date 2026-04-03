@@ -183,18 +183,66 @@
           </v-row>
         </v-alert>
 
-        <v-row dense>
-          <v-col cols="12" sm="6" md="4">
+        <!-- Export Section -->
+        <h4 class="text-subtitle-2 font-weight-medium mb-2">
+          <v-icon start size="small" color="primary">mdi-export</v-icon>
+          Export
+        </h4>
+        <v-row dense class="mb-4">
+          <v-col cols="12" sm="6" md="3">
             <v-btn
               block
               variant="outlined"
               color="primary"
-              prepend-icon="mdi-export"
-              @click="handleExport"
+              prepend-icon="mdi-database-export"
+              @click="handleExport('all')"
             >
-              Export Data
+              Export All
             </v-btn>
           </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-btn
+              block
+              variant="outlined"
+              color="primary"
+              prepend-icon="mdi-account-multiple"
+              :disabled="membersStore.memberCount === 0"
+              @click="handleExport('members')"
+            >
+              Members Only
+            </v-btn>
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-btn
+              block
+              variant="outlined"
+              color="primary"
+              prepend-icon="mdi-lightbulb-on-outline"
+              :disabled="initiativesStore.initiativeCount === 0"
+              @click="handleExport('initiatives')"
+            >
+              Initiatives Only
+            </v-btn>
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-btn
+              block
+              variant="outlined"
+              color="primary"
+              @click="showExportPreviewDialog = true"
+            >
+              <v-icon start>mdi-eye-outline</v-icon>
+              Preview
+            </v-btn>
+          </v-col>
+        </v-row>
+
+        <!-- Import Section -->
+        <h4 class="text-subtitle-2 font-weight-medium mb-2">
+          <v-icon start size="small" color="primary">mdi-import</v-icon>
+          Import
+        </h4>
+        <v-row dense>
           <v-col cols="12" sm="6" md="4">
             <v-btn
               block
@@ -223,26 +271,40 @@
         </h4>
         <v-row dense>
           <v-col cols="12" sm="6" md="4">
-            <v-btn
-              block
-              variant="outlined"
-              color="error"
-              prepend-icon="mdi-delete-outline"
-              @click="showClearDialog = true"
-            >
-              Clear All Data
-            </v-btn>
+            <v-tooltip location="bottom" :open-delay="300" max-width="260">
+              <template #activator="{ props: tp }">
+                <div v-bind="tp">
+                  <v-btn
+                    block
+                    variant="outlined"
+                    color="error"
+                    prepend-icon="mdi-delete-outline"
+                    @click="showClearDialog = true"
+                  >
+                    Clear All Data
+                  </v-btn>
+                </div>
+              </template>
+              Permanently delete all members, initiatives, quarters, and custom roles. This cannot be undone.
+            </v-tooltip>
           </v-col>
           <v-col cols="12" sm="6" md="4">
-            <v-btn
-              block
-              variant="outlined"
-              color="warning"
-              prepend-icon="mdi-refresh"
-              @click="showResetDialog = true"
-            >
-              Reset with Sample Data
-            </v-btn>
+            <v-tooltip location="bottom" :open-delay="300" max-width="260">
+              <template #activator="{ props: tp }">
+                <div v-bind="tp">
+                  <v-btn
+                    block
+                    variant="outlined"
+                    color="warning"
+                    prepend-icon="mdi-refresh"
+                    @click="showResetDialog = true"
+                  >
+                    Reset with Sample Data
+                  </v-btn>
+                </div>
+              </template>
+              Replace all existing data with a sample One Piece themed dataset. Your current data will be lost.
+            </v-tooltip>
           </v-col>
         </v-row>
       </v-card-text>
@@ -361,22 +423,100 @@
       </v-card>
     </v-dialog>
 
-    <!-- Import data dialog -->
-    <v-dialog v-model="showImportDialog" max-width="450" persistent>
+    <!-- Export preview dialog -->
+    <v-dialog v-model="showExportPreviewDialog" max-width="450">
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon start color="primary">mdi-eye-outline</v-icon>
+          Export Preview
+        </v-card-title>
+        <v-card-text>
+          <div class="mb-3">The following data will be exported:</div>
+          <v-list density="compact" class="bg-transparent">
+            <v-list-item v-for="stat in storageStats" :key="stat.label">
+              <template #prepend>
+                <v-icon :color="stat.count > 0 ? 'primary' : 'grey'" class="mr-3">
+                  {{ stat.icon }}
+                </v-icon>
+              </template>
+              <v-list-item-title>{{ stat.label }}</v-list-item-title>
+              <template #append>
+                <v-chip size="small" :color="stat.count > 0 ? 'primary' : 'default'" variant="tonal">
+                  {{ stat.count }}
+                </v-chip>
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showExportPreviewDialog = false">Close</v-btn>
+          <v-btn color="primary" variant="flat" @click="showExportPreviewDialog = false; handleExport('all')">
+            Export All
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Import data dialog with preview and mode selection -->
+    <v-dialog v-model="showImportDialog" max-width="500" persistent>
       <v-card>
         <v-card-title class="text-h6">
           <v-icon start color="primary">mdi-import</v-icon>
-          Import Data?
+          Import Data
         </v-card-title>
         <v-card-text>
-          This will <strong>replace all existing data</strong> with the contents of the
-          selected file. This action cannot be undone.
+          <!-- File info preview -->
+          <div v-if="importFilePreview" class="mb-4">
+            <v-alert type="info" density="compact" variant="tonal" class="mb-3">
+              <div><strong>File:</strong> {{ importFilePreview.fileName }} ({{ importFilePreview.fileSize }})</div>
+              <div class="d-flex flex-wrap ga-2 mt-1">
+                <v-chip v-if="importFilePreview.preview.members > 0" size="small" color="primary" variant="tonal">
+                  {{ importFilePreview.preview.members }} members
+                </v-chip>
+                <v-chip v-if="importFilePreview.preview.initiatives > 0" size="small" color="success" variant="tonal">
+                  {{ importFilePreview.preview.initiatives }} initiatives
+                </v-chip>
+                <v-chip v-if="importFilePreview.preview.quarters > 0" size="small" color="warning" variant="tonal">
+                  {{ importFilePreview.preview.quarters }} quarters
+                </v-chip>
+                <v-chip v-if="importFilePreview.preview.roles > 0" size="small" color="info" variant="tonal">
+                  {{ importFilePreview.preview.roles }} roles
+                </v-chip>
+              </div>
+            </v-alert>
+          </div>
+
+          <!-- Import mode selection -->
+          <div class="mb-2 text-subtitle-2">Import Mode</div>
+          <v-radio-group v-model="importMode" density="compact" hide-details>
+            <v-radio value="replace" color="error">
+              <template #label>
+                <div>
+                  <strong>Replace</strong>
+                  <span class="text-caption text-medium-emphasis d-block">Clear all existing data and replace with imported data</span>
+                </div>
+              </template>
+            </v-radio>
+            <v-radio value="merge" color="primary">
+              <template #label>
+                <div>
+                  <strong>Merge</strong>
+                  <span class="text-caption text-medium-emphasis d-block">Add new items and update existing items by ID</span>
+                </div>
+              </template>
+            </v-radio>
+          </v-radio-group>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="cancelImport">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="confirmImport">
-            Import
+          <v-btn
+            :color="importMode === 'replace' ? 'error' : 'primary'"
+            variant="flat"
+            @click="confirmImport"
+          >
+            {{ importMode === 'replace' ? 'Replace & Import' : 'Merge Import' }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -474,6 +614,7 @@ import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import { useRolesStore } from '~/stores/roles'
 import { useDataExport } from '~/composables/useDataExport'
+import type { ExportCollection, ImportMode, FilePreview } from '~/composables/useDataExport'
 import { useSeedData } from '~/composables/useSeedData'
 import { useAppTheme, type ThemeMode } from '~/composables/useAppTheme'
 import { useToast } from '~/composables/useToast'
@@ -483,7 +624,7 @@ const membersStore = useMembersStore()
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
 const rolesStore = useRolesStore()
-const { exportData, importData } = useDataExport()
+const { exportData, importData, previewImportFile } = useDataExport()
 const { clearAllData, resetWithSampleData } = useSeedData()
 const { mode: themeMode, currentTheme, setTheme } = useAppTheme()
 const toast = useToast()
@@ -626,22 +767,26 @@ function formatDate(date: Date | string): string {
 }
 
 // ─── Data Management ────────────────────────────────────────
+const showExportPreviewDialog = ref(false)
 const showClearDialog = ref(false)
 const showResetDialog = ref(false)
 const showImportDialog = ref(false)
+const importMode = ref<ImportMode>('replace')
+const importFilePreview = ref<FilePreview | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const pendingFile = ref<File | null>(null)
 
 const storageStats = computed(() => [
-  { count: membersStore.memberCount, label: 'members' },
-  { count: initiativesStore.initiativeCount, label: 'initiatives' },
-  { count: quartersStore.quarterCount, label: 'quarters' },
-  { count: rolesStore.roles.length, label: 'roles' },
+  { count: membersStore.memberCount, label: 'members', icon: 'mdi-account-multiple' },
+  { count: initiativesStore.initiativeCount, label: 'initiatives', icon: 'mdi-lightbulb-on-outline' },
+  { count: quartersStore.quarterCount, label: 'quarters', icon: 'mdi-calendar-range' },
+  { count: rolesStore.roles.length, label: 'roles', icon: 'mdi-badge-account' },
 ])
 
-function handleExport() {
-  exportData()
-  toast.success('Data exported successfully')
+function handleExport(collection: ExportCollection = 'all') {
+  exportData(collection)
+  const label = collection === 'all' ? 'All data' : collection.charAt(0).toUpperCase() + collection.slice(1)
+  toast.success(`${label} exported successfully`)
 }
 
 function triggerImport() {
@@ -653,21 +798,34 @@ function handleFileSelected(event: Event) {
   const file = input.files?.[0]
   if (!file) return
   pendingFile.value = file
-  showImportDialog.value = true
+
+  // Preview the file
+  previewImportFile(file)
+    .then((preview) => {
+      importFilePreview.value = preview
+      showImportDialog.value = true
+    })
+    .catch(() => {
+      importFilePreview.value = null
+      showImportDialog.value = true
+    })
+
   input.value = ''
 }
 
 function cancelImport() {
   showImportDialog.value = false
   pendingFile.value = null
+  importFilePreview.value = null
 }
 
 async function confirmImport() {
   showImportDialog.value = false
   if (!pendingFile.value) return
 
-  const result = await importData(pendingFile.value)
+  const result = await importData(pendingFile.value, importMode.value)
   pendingFile.value = null
+  importFilePreview.value = null
 
   if (result.success) {
     toast.success(result.message)

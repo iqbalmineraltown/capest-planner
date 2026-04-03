@@ -128,6 +128,16 @@
             Total effort: <strong>{{ totalEffort }} manweeks</strong> across
             <strong>{{ formData.roleRequirements.length }}</strong> role{{ formData.roleRequirements.length > 1 ? 's' : '' }}
           </v-alert>
+
+          <v-alert
+            v-if="formData.roleRequirements.length === 0 && formSubmitted"
+            type="error"
+            density="compact"
+            variant="tonal"
+            class="mt-2"
+          >
+            Add at least one role requirement to define resource needs.
+          </v-alert>
         </div>
       </v-card-text>
 
@@ -163,6 +173,7 @@ import type { Initiative, RoleRequirement, QuarterConfig } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import { useRolesStore } from '~/stores/roles'
+import { useToast } from '~/composables/useToast'
 
 interface Props {
   initiative?: Initiative
@@ -179,9 +190,11 @@ const emit = defineEmits<Emits>()
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
 const rolesStore = useRolesStore()
+const toast = useToast()
 
 const formRef = ref()
 const submitting = ref(false)
+const formSubmitted = ref(false)
 
 const isEditMode = computed(() => !!props.initiative)
 
@@ -207,7 +220,11 @@ const totalEffort = computed(() =>
 
 const rules = {
   required: (value: any) => !!value || 'This field is required',
-  minRoles: () => formData.value.roleRequirements.length > 0 || 'Add at least one role requirement'
+  minRoles: () => formData.value.roleRequirements.length > 0 || 'Add at least one role requirement',
+  positiveEffort: () => {
+    const invalid = formData.value.roleRequirements.some(r => !r.effort || r.effort <= 0)
+    return !invalid || 'All role efforts must be greater than 0'
+  },
 }
 
 function addRoleRequirement() {
@@ -230,10 +247,20 @@ function removeRoleRequirement(index: number) {
 }
 
 async function handleSubmit() {
+  formSubmitted.value = true
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
   if (formData.value.roleRequirements.length === 0) {
+    // Show validation error for role requirements
+    toast.error('Please add at least one role requirement')
+    return
+  }
+
+  // Validate positive effort for all roles
+  const hasInvalidEffort = formData.value.roleRequirements.some(r => !r.effort || r.effort <= 0)
+  if (hasInvalidEffort) {
+    toast.error('All role efforts must be greater than 0')
     return
   }
 

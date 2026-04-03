@@ -11,13 +11,18 @@ export const useQuartersStore = defineStore('quarters', () => {
     if (typeof window === 'undefined') return [getDefaultQuarterConfig()]
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
-      const parsed = JSON.parse(stored)
-      // Reconstruct Date objects
-      return parsed.map((q: QuarterConfig) => ({
-        ...q,
-        startDate: new Date(q.startDate),
-        endDate: new Date(q.endDate),
-      }))
+      try {
+        const parsed = JSON.parse(stored)
+        // Reconstruct Date objects
+        return parsed.map((q: QuarterConfig) => ({
+          ...q,
+          startDate: new Date(q.startDate),
+          endDate: new Date(q.endDate),
+        }))
+      } catch {
+        console.warn('Failed to parse quarters data, resetting to defaults')
+        return [getDefaultQuarterConfig()]
+      }
     }
     // Default to current quarter
     return [getDefaultQuarterConfig()]

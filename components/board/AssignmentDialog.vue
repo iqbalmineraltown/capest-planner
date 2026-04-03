@@ -169,6 +169,7 @@ import { ref, computed, watch } from 'vue'
 import type { Initiative, Assignment, TeamMember, QuarterConfig } from '~/types'
 import { useRolesStore } from '~/stores/roles'
 import { checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
+import { getInitials } from '~/utils/colorUtils'
 
 const props = defineProps<{
   modelValue: boolean
@@ -272,10 +273,6 @@ watch(
   }
 )
 
-function getInitials(name: string): string {
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-}
-
 function handleSave() {
   const assignment: Assignment = {
     memberId: formData.value.memberId,
@@ -303,17 +300,13 @@ function handleSave() {
 .assignment-dialog__title {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #1a1a2e;
+  color: rgba(var(--v-theme-on-surface), 0.87);
   margin: 0;
 }
 
 .assignment-dialog__subtitle {
   font-size: 0.82rem;
-  color: #9e9e9e;
+  color: rgba(var(--v-theme-on-surface), 0.5);
   margin: 2px 0 0;
-}
-
-.v-theme--dark .assignment-dialog__title {
-  color: #e0e0e0;
 }
 </style>

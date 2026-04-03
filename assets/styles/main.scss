@@ -80,8 +80,8 @@ html, body {
 // ─── SortableJS Ghost & Chosen ──────────────────────────────
 .sortable-ghost {
   opacity: 0.4 !important;
-  background: #E3F2FD !important;
-  border: 2px dashed #1976D2 !important;
+  background: rgba(var(--v-theme-primary), 0.08) !important;
+  border: 2px dashed rgb(var(--v-theme-primary)) !important;
   border-radius: 8px !important;
 }
 
@@ -121,15 +121,10 @@ html, body {
 
 // ─── Card Styles (global utility) ───────────────────────────
 .card-elevated {
-  background: #fff;
+  background: rgb(var(--v-theme-surface));
   border-radius: 12px;
-  border: 1px solid #e8ecf1;
+  border: 1px solid rgb(var(--v-theme-border));
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.v-theme--dark .card-elevated {
-  background: #1e1e2e;
-  border-color: #2d2d44;
 }
 
 // ─── Drag cursor indicators ─────────────────────────────────

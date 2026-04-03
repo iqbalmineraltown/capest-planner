@@ -11,7 +11,15 @@ export const useInitiativesStore = defineStore('initiatives', () => {
   const loadInitiatives = (): Initiative[] => {
     if (typeof window === 'undefined') return []
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : []
+    if (stored) {
+      try {
+        return JSON.parse(stored)
+      } catch {
+        console.warn('Failed to parse initiatives data, resetting to empty')
+        return []
+      }
+    }
+    return []
   }
 
   const initiatives = ref<Initiative[]>(loadInitiatives())

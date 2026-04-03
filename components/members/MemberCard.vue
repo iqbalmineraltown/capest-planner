@@ -27,11 +27,11 @@
         <!-- Action buttons -->
         <div v-if="editMode" class="d-flex gap-1" @click.stop>
           <v-btn
-            icon="mdi-pencil"
+            icon="mdi-cog"
             size="small"
             variant="text"
-            color="primary"
-            data-testid="edit-member-btn"
+            color="secondary"
+            data-testid="settings-member-btn"
             @click="$emit('edit', member.id)"
           />
           <v-btn
@@ -64,24 +64,45 @@
         </div>
       </div>
 
-      <!-- Availability and assignments -->
-      <v-row class="text-caption">
-        <v-col cols="6">
+      <!-- Quarter Availability -->
+      <div class="mb-2">
+        <div class="d-flex align-center justify-space-between">
           <div class="d-flex align-center">
-            <v-icon icon="mdi-clock-outline" size="small" class="mr-1" />
-            <span class="text-grey-darken-1">Availability:</span>
+            <v-icon icon="mdi-calendar-clock" size="small" class="mr-1" />
+            <span class="text-caption text-grey-darken-1">Quarter Availability</span>
           </div>
-          <div class="text-h6 font-weight-bold ml-6">
-            {{ member.availability }} <span class="text-caption font-weight-regular">manweeks</span>
-          </div>
-        </v-col>
-        <v-col cols="6">
+        </div>
+        <div class="d-flex flex-wrap gap-1 mt-1">
+          <v-chip
+            v-for="(weeks, quarterId) in member.quarterAvailability"
+            :key="quarterId"
+            size="small"
+            :color="weeks > 0 ? 'primary' : 'default'"
+            variant="tonal"
+            label
+          >
+            {{ quarterId }}: {{ weeks }}w
+          </v-chip>
+          <v-chip 
+            v-if="Object.keys(member.quarterAvailability).length === 0" 
+            size="small" 
+            label 
+            disabled
+          >
+            No quarters configured
+          </v-chip>
+        </div>
+      </div>
+
+      <!-- Assignments -->
+      <v-row class="text-caption mt-2">
+        <v-col cols="12">
           <div class="d-flex align-center">
             <v-icon icon="mdi-briefcase-outline" size="small" class="mr-1" />
             <span class="text-grey-darken-1">Assigned:</span>
-          </div>
-          <div class="text-h6 font-weight-bold ml-6">
-            {{ member.assignedInitiatives.length }} <span class="text-caption font-weight-regular">initiatives</span>
+            <span class="font-weight-bold ml-2">
+              {{ member.assignedInitiatives.length }} initiatives
+            </span>
           </div>
         </v-col>
       </v-row>

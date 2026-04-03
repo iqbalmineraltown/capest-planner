@@ -1,7 +1,80 @@
 <template>
   <div class="dashboard-page">
+    <!-- Welcome Banner (shown when no data) -->
+    <v-alert
+      v-if="isEmptyState"
+      type="info"
+      variant="tonal"
+      prominent
+      class="mb-6 welcome-banner"
+    >
+      <template #prepend>
+        <v-icon size="40" class="mt-1">mdi-rocket-launch</v-icon>
+      </template>
+      <v-alert-title class="text-h6 font-weight-bold mb-2">Welcome to Capest Planner!</v-alert-title>
+      <p class="text-body-2 mb-4">
+        Get started with capacity planning in 3 easy steps:
+      </p>
+      <v-stepper vertical hide-actions class="bg-transparent welcome-stepper" :model-value="-1">
+        <v-stepper-step :complete="hasQuarters" step="1" :color="hasQuarters ? 'success' : 'primary'">
+          <span class="text-body-2 font-weight-medium">Create a Quarter</span>
+          <span class="text-caption text-medium-emphasis">Set up your planning timeframe</span>
+        </v-stepper-step>
+        <v-stepper-step :complete="hasMembers" step="2" :color="hasMembers ? 'success' : 'primary'">
+          <span class="text-body-2 font-weight-medium">Add Team Members</span>
+          <span class="text-caption text-medium-emphasis">Define your team and their roles</span>
+        </v-stepper-step>
+        <v-stepper-step :complete="hasInitiatives" step="3" :color="hasInitiatives ? 'success' : 'primary'">
+          <span class="text-body-2 font-weight-medium">Create Initiatives</span>
+          <span class="text-caption text-medium-emphasis">Plan projects and allocate capacity</span>
+        </v-stepper-step>
+      </v-stepper>
+      <div class="d-flex flex-wrap ga-2 mt-3">
+        <v-btn
+          v-if="!hasQuarters"
+          color="primary"
+          variant="flat"
+          size="small"
+          prepend-icon="mdi-calendar-plus"
+          to="/board"
+        >
+          Add Quarter
+        </v-btn>
+        <v-btn
+          v-if="!hasMembers"
+          color="primary"
+          variant="flat"
+          size="small"
+          prepend-icon="mdi-account-plus"
+          to="/members"
+        >
+          Add Members
+        </v-btn>
+        <v-btn
+          v-if="!hasInitiatives && hasQuarters"
+          color="primary"
+          variant="flat"
+          size="small"
+          prepend-icon="mdi-lightbulb-on"
+          to="/initiatives"
+        >
+          Create Initiative
+        </v-btn>
+        <v-btn
+          v-if="!hasMembers && !hasInitiatives"
+          color="secondary"
+          variant="tonal"
+          size="small"
+          prepend-icon="mdi-refresh"
+          to="/settings"
+        >
+          Load Sample Data
+        </v-btn>
+      </div>
+    </v-alert>
+
     <!-- Header -->
-    <div class="d-flex align-center justify-space-between mb-6">
+    <div v-if="!isEmptyState" class="d-flex align-center justify-space-between mb-6">
       <div>
         <h1 class="text-h4 font-weight-bold">Dashboard</h1>
         <p class="text-grey-darken-1">Overview of your capacity planning</p>
@@ -13,7 +86,7 @@
     </div>
 
     <!-- Stats Cards -->
-    <v-row class="mb-6">
+    <v-row v-if="!isEmptyState" class="mb-6">
       <v-col cols="12" sm="6" md="3">
         <v-card class="stat-card" variant="tonal" color="primary">
           <v-card-text>
@@ -287,18 +360,28 @@ import { useQuartersStore } from '~/stores/quarters'
 import { useRolesStore } from '~/stores/roles'
 import { calculateQuarterCapacitySummary } from '~/utils/capacityCalculator'
 import { formatQuarterLabel, getCurrentQuarterId } from '~/utils/dateUtils'
+import { getInitials } from '~/utils/colorUtils'
 
 const membersStore = useMembersStore()
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()
 const rolesStore = useRolesStore()
 
+// Empty state detection
+const hasMembers = computed(() => membersStore.memberCount > 0)
+const hasInitiatives = computed(() => initiativesStore.initiativeCount > 0)
+const hasQuarters = computed(() => quartersStore.quarterCount > 0)
+const isEmptyState = computed(() => !hasMembers.value && !hasInitiatives.value)
+
 // Computed stats
 const memberCount = computed(() => membersStore.memberCount)
 const initiativeCount = computed(() => initiativesStore.initiativeCount)
 
 const totalCapacity = computed(() =>
-  membersStore.members.reduce((sum, m) => sum + m.availability, 0)
+  membersStore.members.reduce((sum, m) => {
+    const quarterAvail = m.quarterAvailability[quartersStore.currentQuarter?.id ?? ''] ?? 0
+    return sum + quarterAvail
+  }, 0)
 )
 
 const currentQuarterLabel = computed(() => {
@@ -355,15 +438,6 @@ const recentInitiatives = computed(() =>
 )
 
 // Helper functions
-function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-}
-
 function getMemberColor(name: string): string {
   const colors = ['primary', 'secondary', 'success', 'warning', 'info', 'error']
   const index = name.charCodeAt(0) % colors.length
@@ -394,5 +468,18 @@ function getMemberColor(name: string): string {
 .stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.welcome-banner :deep(.v-alert__content) {
+  max-width: 100%;
+}
+
+.welcome-stepper {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.welcome-stepper :deep(.v-stepper__step) {
+  padding: 8px 16px;
 }
 </style>

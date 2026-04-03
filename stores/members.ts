@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
-import type { TeamMember } from '~/types'
+import type { TeamMember, QuarterAvailability } from '~/types'
 import { generateMemberId } from '~/utils/idGenerator'
+import { getDefaultQuarterConfig } from '~/utils/dateUtils'
 import { useInitiativesStore } from '~/stores/initiatives'
 
 const STORAGE_KEY = 'capest-members'
@@ -11,7 +12,30 @@ export const useMembersStore = defineStore('members', () => {
   const loadMembers = (): TeamMember[] => {
     if (typeof window === 'undefined') return []
     const stored = localStorage.getItem(STORAGE_KEY)
-    return stored ? JSON.parse(stored) : []
+    if (stored) {
+      let parsed: any[]
+      try {
+        parsed = JSON.parse(stored)
+      } catch {
+        console.warn('Failed to parse members data, resetting to empty')
+        return []
+      }
+      // Migrate old data: if member has 'availability' but not 'quarterAvailability'
+      return parsed.map((m: any) => {
+        if (m.availability !== undefined && !m.quarterAvailability) {
+          // Migrate: convert old availability to quarterAvailability for current quarter
+          const defaultQuarter = getDefaultQuarterConfig()
+          return {
+            ...m,
+            quarterAvailability: {
+              [defaultQuarter.id]: m.availability
+            }
+          }
+        }
+        return m
+      })
+    }
+    return []
   }
 
   const members = ref<TeamMember[]>(loadMembers())
@@ -42,6 +66,15 @@ export const useMembersStore = defineStore('members', () => {
   const getMembersForInitiative = computed(() => {
     return (initiativeId: string): TeamMember[] =>
       members.value.filter((m) => m.assignedInitiatives.includes(initiativeId))
+  })
+
+  // Get members available for a specific quarter
+  const getMembersForQuarter = computed(() => {
+    return (quarterId: string): TeamMember[] =>
+      members.value.filter((m) => {
+        const availability = m.quarterAvailability[quarterId] ?? 0
+        return availability > 0
+      })
   })
 
   // Actions
@@ -107,6 +140,22 @@ export const useMembersStore = defineStore('members', () => {
     return true
   }
 
+  // Update member's availability for a specific quarter
+  function updateQuarterAvailability(memberId: string, quarterId: string, manweeks: number): boolean {
+    const member = members.value.find((m) => m.id === memberId)
+    if (!member) return false
+
+    member.quarterAvailability[quarterId] = manweeks
+    return true
+  }
+
+  // Get availability for a specific quarter
+  function getQuarterAvailability(memberId: string, quarterId: string): number {
+    const member = members.value.find((m) => m.id === memberId)
+    if (!member) return 0
+    return member.quarterAvailability[quarterId] ?? 0
+  }
+
   function clearAll(): void {
     members.value = []
   }
@@ -117,11 +166,14 @@ export const useMembersStore = defineStore('members', () => {
     getMemberById,
     getMembersByRole,
     getMembersForInitiative,
+    getMembersForQuarter,
     addMember,
     updateMember,
     removeMember,
     assignToInitiative,
     unassignFromInitiative,
+    updateQuarterAvailability,
+    getQuarterAvailability,
     clearAll,
   }
 })
