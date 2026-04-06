@@ -92,6 +92,9 @@
     <div class="swimlane-board">
       <!-- Week column headers (inside swimlane for alignment) -->
       <div class="swimlane-weeks">
+        <!-- Spacer to align with header's "Initiative" label column -->
+        <div class="swimlane-weeks__spacer" />
+
         <div
           v-for="week in totalWeeks"
           :key="week"
@@ -302,22 +305,22 @@ function handleDragEnd() {
 <style scoped>
 .board-swimlane {
   background: rgb(var(--v-theme-surface-variant));
-  border-radius: 12px;
+  border-radius: 8px;
   border: 1px solid rgb(var(--v-theme-border));
   overflow: hidden;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .board-swimlane + .board-swimlane {
-  margin-top: 12px;
+  margin-top: 6px;
 }
 
 /* ─── Header ──────────────────────────────────────────────── */
 .swimlane-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 8px;
+  padding: 8px 12px;
   background: rgb(var(--v-theme-surface));
   border-bottom: 1px solid rgb(var(--v-theme-border));
   user-select: none;
@@ -331,13 +334,13 @@ function handleDragEnd() {
 .swimlane-header__left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
   min-width: 200px;
 }
 
 .swimlane-header__title {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--v-theme-on-surface));
   white-space: nowrap;
@@ -403,26 +406,32 @@ function handleDragEnd() {
 
 /* ─── Week columns board ──────────────────────────────────── */
 .swimlane-board {
-  padding: 8px;
+  padding: 6px;
   overflow-x: auto;
   scroll-behavior: smooth;
 }
 
 .swimlane-weeks {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   min-width: max-content;
 }
 
+/* Spacer to align week columns with header week labels */
+.swimlane-weeks__spacer {
+  flex: 0 0 200px;
+  flex-shrink: 0;
+}
+
 .week-column {
-  flex: 0 0 120px;
-  min-height: 60px;
-  padding: 6px;
+  flex: 0 0 100px;
+  min-height: 50px;
+  padding: 4px;
   background: rgb(var(--v-theme-surface));
-  border-radius: 8px;
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -513,10 +522,14 @@ function handleDragEnd() {
     font-size: 0.6rem;
   }
 
+  .swimlane-weeks__spacer {
+    flex: 0 0 100px;
+  }
+
   .week-column {
-    flex: 0 0 80px;
-    min-height: 50px;
-    padding: 4px;
+    flex: 0 0 70px;
+    min-height: 45px;
+    padding: 3px;
   }
 }
 
@@ -525,9 +538,13 @@ function handleDragEnd() {
     min-width: 0;
   }
 
-  .week-column {
+  .swimlane-weeks__spacer {
     flex: 0 0 60px;
-    min-height: 44px;
+  }
+
+  .week-column {
+    flex: 0 0 55px;
+    min-height: 40px;
     padding: 3px;
   }
 

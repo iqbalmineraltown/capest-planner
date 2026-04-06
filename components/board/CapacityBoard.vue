@@ -40,6 +40,7 @@
             v-for="member in filteredMembers"
             :key="member.id"
             class="member-pool-card"
+            :class="{ 'member-pool-card--conflict': hasMemberConflicts(member.id) }"
             draggable="true"
             @dragstart="handleMemberDragStart($event, member)"
             @dragend="handleDragEnd"
@@ -65,6 +66,26 @@
                 </div>
               </div>
             </div>
+
+            <!-- Conflict warning badge -->
+            <v-tooltip v-if="hasMemberConflicts(member.id)" location="top" :max-width="280">
+              <template #activator="{ props: tp }">
+                <v-icon
+                  v-bind="tp"
+                  size="small"
+                  color="warning"
+                  class="member-pool-card__warning"
+                >
+                  mdi-alert-circle
+                </v-icon>
+              </template>
+              <div class="conflict-tooltip">
+                <strong>Week conflicts detected!</strong>
+                <div v-for="c in getMemberConflictDetails(member.id)" :key="c.week" class="text-caption">
+                  Week {{ c.week }}: {{ c.initiatives.map(i => i.name).join(', ') }}
+                </div>
+              </div>
+            </v-tooltip>
 
             <div class="member-pool-card__actions">
               <v-btn
@@ -189,7 +210,7 @@ import { ref, computed } from 'vue'
 import type { Initiative, QuarterConfig, TeamMember } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useMembersStore } from '~/stores/members'
-import { calculateMemberQuarterCapacity } from '~/utils/capacityCalculator'
+import { calculateMemberQuarterCapacity, getMemberWeekConflicts } from '~/utils/capacityCalculator'
 import { getInitials } from '~/utils/colorUtils'
 import { getRoleHex } from '~/utils/colorUtils'
 import { useBoardDragDrop } from '~/composables/useBoardDragDrop'
@@ -297,6 +318,18 @@ function getCapacityBarColor(memberId: string): string {
   if (pct >= 80) return '#FFC107'
   if (pct >= 50) return '#4CAF50'
   return '#1976D2'
+}
+
+// ─── Conflict detection ─────────────────────────────────────────
+function hasMemberConflicts(memberId: string): boolean {
+  if (!props.quarter) return false
+  const conflicts = getMemberWeekConflicts(memberId, initiativesStore.initiatives, props.quarter.id)
+  return conflicts.length > 0
+}
+
+function getMemberConflictDetails(memberId: string): Array<{ week: number; initiatives: Array<{ id: string; name: string; role: string }> }> {
+  if (!props.quarter) return []
+  return getMemberWeekConflicts(memberId, initiativesStore.initiatives, props.quarter.id)
 }
 
 // ─── Drag handlers ──────────────────────────────────────────
@@ -513,6 +546,28 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   opacity: 1;
 }
 
+.member-pool-card__warning {
+  flex-shrink: 0;
+}
+
+.member-pool-card--conflict {
+  border-color: rgb(var(--v-theme-warning), 0.3);
+}
+
+.member-pool-card__warning {
+  flex-shrink: 0;
+}
+
+.conflict-tooltip {
+  font-size: 0.8rem;
+}
+
+.conflict-tooltip strong {
+  display: block;
+  margin-bottom: 4px;
+  color: rgb(var(--v-theme-warning));
+}
+
 .member-pool-card__capacity {
   display: flex;
   flex-direction: column;
@@ -615,7 +670,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 }
 
 .board-week-header__week {
-  flex: 0 0 120px;
+  flex: 0 0 100px;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
@@ -659,7 +714,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   }
 
   .board-week-header__week {
-    flex: 0 0 80px;
+    flex: 0 0 70px;
   }
 }
 
@@ -672,7 +727,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   }
 
   .board-week-header__week {
-    flex: 0 0 60px;
+    flex: 0 0 55px;
   }
 }
 </style>

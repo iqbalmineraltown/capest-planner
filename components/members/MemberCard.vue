@@ -112,17 +112,22 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TeamMember } from '~/types'
+import type { TeamMember, Initiative } from '~/types'
 import { getInitials, stringToColor } from '~/utils/colorUtils'
+import { getMemberWeekConflicts } from '~/utils/capacityCalculator'
 import { useRolesStore } from '~/stores/roles'
 
 interface Props {
   member: TeamMember
   editMode?: boolean
+  initiatives?: Initiative[]
+  quarterId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   editMode: false,
+  initiatives: () => [],
+  quarterId: '',
 })
 
 defineEmits<{
@@ -143,6 +148,15 @@ const initials = computed(() => getInitials(props.member.name))
 function getRoleColor(role: string): string {
   return rolesStore.getRoleColor(role) || stringToColor(role)
 }
+
+// Get week conflicts for this member
+const weekConflicts = computed(() => {
+  if (!props.quarterId || !props.initiatives?.length) return []
+  return getMemberWeekConflicts(props.member.id, props.initiatives, props.quarterId)
+})
+
+// Check if member has any conflicts
+const hasConflicts = computed(() => weekConflicts.value.length > 0)
 </script>
 
 <style scoped>

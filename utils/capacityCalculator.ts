@@ -376,3 +376,51 @@ export function getRoleFulfillment(
     }
   })
 }
+
+/**
+ * Get all week conflicts for a member across all initiatives
+ * Returns conflicts grouped by week, showing which initiatives the member is assigned to in that week
+ */
+export function getMemberWeekConflicts(
+  memberId: string,
+  initiatives: Initiative[],
+  quarterId: string
+): Array<{
+  week: number
+  initiatives: Array<{ id: string; name: string; role: string }>
+}> {
+  const weekAssignments: Map<number, Array<{ id: string; name: string; role: string }>> = new Map()
+
+  for (const initiative of initiatives) {
+    if (initiative.quarter !== quarterId) continue
+
+    for (const assignment of initiative.assignments) {
+      if (assignment.memberId !== memberId) continue
+
+      const endWeek = assignment.startWeek + assignment.weeksAllocated - 1
+      for (let week = assignment.startWeek; week <= endWeek; week++) {
+        if (!weekAssignments.has(week)) {
+          weekAssignments.set(week, [])
+        }
+        weekAssignments.get(week)!.push({
+          id: initiative.id,
+          name: initiative.name,
+          role: assignment.role,
+        })
+      }
+    }
+  }
+
+  // Filter to only weeks with conflicts (more than 1 initiative)
+  const conflicts: Array<{ week: number; initiatives: Array<{ id: string; name: string; role: string }> }> = []
+  for (const [week, initiativesList] of weekAssignments) {
+    if (initiativesList.length > 1) {
+      conflicts.push({
+        week,
+        initiatives: initiativesList,
+      })
+    }
+  }
+
+  return conflicts.sort((a, b) => a.week - b.week)
+}
