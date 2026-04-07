@@ -308,7 +308,7 @@ function handleDragEnd() {
   border-radius: 8px;
   border: 1px solid rgb(var(--v-theme-border));
   overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25c-bezier(0.4, 0, 0.2, 1);
 }
 
 .board-swimlane + .board-swimlane {
@@ -336,7 +336,7 @@ function handleDragEnd() {
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  min-width: 200px;
+  min-width: 160px;
 }
 
 .swimlane-header__title {
@@ -419,12 +419,12 @@ function handleDragEnd() {
 
 /* Spacer to align week columns with header week labels */
 .swimlane-weeks__spacer {
-  flex: 0 0 200px;
+  flex: 0 0 160px;
   flex-shrink: 0;
 }
 
 .week-column {
-  flex: 0 0 100px;
+  flex: 0 0 90px;
   min-height: 50px;
   padding: 4px;
   background: rgb(var(--v-theme-surface));
@@ -495,7 +495,148 @@ function handleDragEnd() {
   50% { opacity: 1; }
 }
 
-/* ─── Responsive ────────────────────────────────────────── */
+/* ─── Assignment card ─────────────────────────────────────── */
+.assignment-card {
+  position: relative;
+  background: rgb(var(--v-theme-surface));
+  border-radius: 8px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  cursor: grab;
+  user-select: none;
+  overflow: hidden;
+  transition:
+    transform 0.18c-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.18c-bezier(0.4, 0, 0.2, 1),
+    opacity 0.15s ease;
+  min-width: 0;
+}
+
+.assignment-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.assignment-card:active {
+  cursor: grabbing;
+  transform: translateY(-1px) scale(1.02);
+}
+
+.assignment-card--dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.assignment-card--ghost {
+  opacity: 0.85;
+  transform: rotate(3deg) scale(1.05);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.2),
+    0 6px 12px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+}
+
+.assignment-card--carryover {
+  border: 2px dashed #FFC107;
+}
+
+.assignment-card--conflict {
+  border: 2px solid #FFC107;
+}
+
+/* Accent bar on left */
+.assignment-card__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+}
+
+.assignment-card__body {
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignment-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assignment-card__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.assignment-card__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.assignment-card__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.assignment-card__role {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.assignment-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assignment-card__weeks {
+  font-size: 0.7rem;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-weight: 500;
+}
+
+.assignment-card__carryover-icon {
+  animation: pulse-carry 1.5s ease-in-out infinite;
+}
+
+.assignment-card__conflict-icon {
+  animation: pulse-conflict 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-carry {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-conflict {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .swimlane-header {
     flex-wrap: wrap;
@@ -515,6 +656,7 @@ function handleDragEnd() {
   .swimlane-header__roles {
     padding: 0 4px;
     gap: 6px;
+    order: 1;
   }
 
   .role-pill {
@@ -523,23 +665,17 @@ function handleDragEnd() {
   }
 
   .swimlane-weeks__spacer {
-    flex: 0 0 100px;
+    flex: 0 0 160px;
   }
 
   .week-column {
     flex: 0 0 70px;
-    min-height: 45px;
-    padding: 3px;
   }
 }
 
 @media (max-width: 480px) {
-  .swimlane-header__left {
-    min-width: 0;
-  }
-
   .swimlane-weeks__spacer {
-    flex: 0 0 60px;
+    flex: 0 0 100px;
   }
 
   .week-column {
@@ -556,6 +692,18 @@ function handleDragEnd() {
     width: 22px;
     height: 22px;
     font-size: 0.55rem;
+  }
+
+  .assignment-card__name {
+    font-size: 0.7rem;
+  }
+
+  .assignment-card__role {
+    font-size: 0.55rem;
+  }
+
+  .assignment-card__weeks {
+    font-size: 0.6rem;
   }
 }
 </style>

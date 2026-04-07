@@ -650,7 +650,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 }
 
 .board-week-header__label {
-  width: 200px;
+  width: 160px;
   flex-shrink: 0;
   padding: 10px 16px;
   font-size: 0.8rem;
@@ -707,7 +707,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
   }
 
   .board-week-header__label {
-    width: 100px;
+    width: 160px;
     min-width: 80px;
     font-size: 0.7rem;
     padding: 8px 10px;
