@@ -1,6 +1,6 @@
 <template>
   <div class="board-swimlane" :class="{ 'board-swimlane--drag-active': isDragging }">
-    <!-- Swimlane Header (no collapse toggle) -->
+    <!-- Swimlane Header -->
     <div class="swimlane-header">
       <div class="swimlane-header__left">
         <span class="swimlane-header__title">{{ initiative.name }}</span>
@@ -88,11 +88,9 @@
       </v-btn>
     </div>
 
-    <!-- Week columns (kanban) - always visible, no collapse -->
+    <!-- Week columns -->
     <div class="swimlane-board">
-      <!-- Week column headers (inside swimlane for alignment) -->
       <div class="swimlane-weeks">
-        <!-- Spacer to align with header's "Initiative" label column -->
         <div class="swimlane-weeks__spacer" />
 
         <div
@@ -108,16 +106,13 @@
           @dragleave="handleWeekDragLeave($event, week)"
           @drop="handleWeekDrop($event, week)"
         >
-          <!-- Week label inside column -->
           <div class="week-column__label">W{{ week }}</div>
 
-          <!-- Drop placeholder -->
           <div v-if="isDropTargetWeek(week)" class="week-column__drop-placeholder">
             <v-icon size="16" color="primary">mdi-plus-circle</v-icon>
             <span class="week-column__drop-text">Drop here</span>
           </div>
 
-          <!-- Assignment cards -->
           <AssignmentCell
             v-for="(assignment, idx) in getAssignmentsForWeek(week)"
             :key="`${assignment.memberId}-${assignment.startWeek}-${idx}`"
@@ -221,8 +216,6 @@ function isDropTargetWeek(week: number): boolean {
 }
 
 // ─── DnD Handlers ───────────────────────────────────────────
-// Uses enter/leave counter pattern to prevent flicker when
-// hovering over child elements inside a week column.
 function handleWeekDragEnter(event: DragEvent, week: number) {
   event.preventDefault()
   if (!weekDragCounters.value[week]) weekDragCounters.value[week] = 0
@@ -232,14 +225,11 @@ function handleWeekDragEnter(event: DragEvent, week: number) {
     setDropTarget(props.initiative.id, week)
   }
   if (event.dataTransfer) {
-    // Use 'move' for assignments, 'copy' for members — must match effectAllowed
     event.dataTransfer.dropEffect = dragState.value?.type === 'assignment' ? 'move' : 'copy'
   }
 }
 
 function handleWeekDragOver(event: DragEvent, _week: number) {
-  // Always preventDefault on dragover to allow drops
-  // Without this, the browser will not fire the 'drop' event
   event.preventDefault()
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = dragState.value?.type === 'assignment' ? 'move' : 'copy'
@@ -257,21 +247,16 @@ function handleWeekDragLeave(_event: DragEvent, week: number) {
 }
 
 function handleWeekDrop(event: DragEvent, week: number) {
-  // Must preventDefault to complete the drop
   event.preventDefault()
-
-  // Reset counter for this column
   weekDragCounters.value[week] = 0
   setDropTarget(props.initiative.id, null as unknown as number)
 
-  // The composable handles both member and assignment drops
   const success = handleDropOnWeek(props.initiative, week)
   if (success) {
     endDrag()
     return
   }
 
-  // Fallback for member drops that the composable couldn't handle
   if (!props.draggedMember) return
   const role = getDropRole(props.draggedMember, props.initiative)
   if (role) {

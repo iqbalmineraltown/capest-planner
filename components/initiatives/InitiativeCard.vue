@@ -1,19 +1,24 @@
 <template>
   <v-card
-    :color="isSelected ? 'primary-lighten-5' : undefined"
+    :color="isSelected ? 'primary--lighten-5' : undefined"
     :elevation="isHovered ? 4 : 2"
-    class="initiative-card"
+    class="initiative-card rounded-lg"
     data-testid="initiative-card"
     :class="{ 'selected-card': isSelected, 'cursor-pointer': !readonly }"
     @click="handleClick"
     @mouseenter="isHovered = true"
     @mouseleave="isHovered = false"
   >
-    <v-card-item class="pa-4">
+    <v-card-text class="pa-4">
       <div class="d-flex align-start justify-space-between">
         <div class="flex-grow-1">
           <div class="d-flex align-center mb-2">
-            <v-chip size="small" color="primary" variant="tonal" class="mr-2">
+            <v-chip
+              size="small"
+              color="primary"
+              variant="tonal"
+              class="mr-2"
+            >
               {{ quarterLabel }}
             </v-chip>
             <v-chip
@@ -27,20 +32,20 @@
             </v-chip>
           </div>
 
-          <h3 class="text-h6 mb-1">{{ initiative.name }}</h3>
-          <p class="text-caption text-medium-emphasis mb-3">
+          <h3 class="text-h5 font-weight-bold mb-2">{{ initiative.name }}</h3>
+          <p class="text-caption text--secondary mb-3">
             {{ truncatedDescription }}
           </p>
 
-          <div class="d-flex flex-wrap gap-1 mb-2">
+          <div class="d-flex flex-wrap gap-2 mb-2">
             <v-chip
               v-for="(req, idx) in initiative.roleRequirements"
               :key="`role-${idx}`"
-              size="x-small"
+              size="small"
               :color="getRoleColor(req.role)"
               variant="tonal"
             >
-              <v-icon start size="x-small">mdi-account-outline</v-icon>
+              <v-icon start size="small">mdi-account-outline</v-icon>
               {{ req.role }}: {{ req.effort }}w
             </v-chip>
           </div>
@@ -75,12 +80,12 @@
           </v-list>
         </v-menu>
       </div>
-    </v-card-item>
+    </v-card-text>
 
     <v-divider />
 
-    <v-card-item class="pa-3 bg-grey-lighten-5">
-      <div class="d-flex align-center justify-space-between">
+    <v-card-actions class="pa-3 bg-grey-lighten-5">
+      <div class="d-flex align-center justify-space-between w-100">
         <div class="d-flex align-center">
           <v-icon
             :color="assignmentStatus.color"
@@ -94,12 +99,12 @@
           </span>
         </div>
 
-        <div class="d-flex align-center text-caption text-medium-emphasis">
+        <div class="d-flex align-center text-caption text--secondary">
           <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
           {{ totalEffort }} manweeks
         </div>
       </div>
-    </v-card-item>
+    </v-card-actions>
   </v-card>
 </template>
 

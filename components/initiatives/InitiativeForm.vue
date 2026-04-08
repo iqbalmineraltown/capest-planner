@@ -1,6 +1,6 @@
 <template>
   <v-form ref="formRef" @submit.prevent="handleSubmit">
-    <v-card>
+    <v-card class="rounded-xl" elevation="3">
       <v-card-title class="d-flex align-center py-4">
         <v-icon start :color="isEditMode ? 'warning' : 'success'">
           {{ isEditMode ? 'mdi-pencil' : 'mdi-plus-circle' }}
@@ -99,7 +99,7 @@
             <v-icon size="48" color="grey-lighten-1" class="mb-2">
               mdi-account-multiple-remove
             </v-icon>
-            <p class="text-caption text-medium-emphasis">
+            <p class="text-caption text--secondary">
               No role requirements added. Add at least one role to define resource needs.
             </p>
           </div>

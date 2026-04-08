@@ -1,36 +1,36 @@
 <template>
   <v-card
-    class="member-card"
+    class="member-card rounded-xl"
     elevation="2"
     hover
     data-testid="member-card"
     :class="{ 'cursor-pointer': !editMode }"
     @click="!editMode && $emit('click', member.id)"
   >
-    <v-card-text>
-      <div class="d-flex align-center mb-3">
+    <v-card-text class="py-4">
+      <div class="d-flex align-center mb-4">
         <!-- Avatar with initials -->
         <v-avatar
           :color="avatarColor"
-          size="56"
-          class="mr-3"
+          size="64"
+          class="mr-4"
         >
-          <span class="text-h5 font-weight-bold">{{ initials }}</span>
+          <span class="text-h4 font-weight-bold">{{ initials }}</span>
         </v-avatar>
 
         <!-- Name and actions -->
         <div class="flex-grow-1">
-          <h3 class="text-h6 mb-0">{{ member.name }}</h3>
-          <div class="text-caption text-grey-darken-1">{{ member.id }}</div>
+          <h3 class="text-h5 font-weight-bold mb-1">{{ member.name }}</h3>
+          <div class="text-caption text--secondary">{{ member.id }}</div>
         </div>
 
         <!-- Action buttons -->
-        <div v-if="editMode" class="d-flex gap-1" @click.stop>
+        <div v-if="editMode" class="d-flex gap-2" @click.stop>
           <v-btn
             icon="mdi-cog"
             size="small"
             variant="text"
-            color="secondary"
+            color="primary"
             data-testid="settings-member-btn"
             @click="$emit('edit', member.id)"
           />
@@ -46,9 +46,20 @@
       </div>
 
       <!-- Role chips -->
-      <div class="mb-3">
-        <div class="text-caption text-grey-darken-1 mb-1">Roles</div>
-        <div class="d-flex flex-wrap gap-1">
+      <div class="mb-4">
+        <div class="d-flex align-center justify-space-between mb-2">
+          <span class="text-caption font-weight-bold text--secondary">Roles</span>
+          <v-chip
+            v-if="hasConflicts"
+            color="error"
+            size="mini"
+            label
+            small
+          >
+            Conflict
+          </v-chip>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
           <v-chip
             v-for="role in member.roles"
             :key="role"
@@ -66,13 +77,13 @@
 
       <!-- Quarter Availability -->
       <div class="mb-2">
-        <div class="d-flex align-center justify-space-between">
+        <div class="d-flex align-center justify-space-between mb-2">
           <div class="d-flex align-center">
             <v-icon icon="mdi-calendar-clock" size="small" class="mr-1" />
-            <span class="text-caption text-grey-darken-1">Quarter Availability</span>
+            <span class="text-caption font-weight-bold text--secondary">Quarter Availability</span>
           </div>
         </div>
-        <div class="d-flex flex-wrap gap-1 mt-1">
+        <div class="d-flex flex-wrap gap-2">
           <v-chip
             v-for="(weeks, quarterId) in member.quarterAvailability"
             :key="quarterId"
@@ -83,12 +94,7 @@
           >
             {{ quarterId }}: {{ weeks }}w
           </v-chip>
-          <v-chip 
-            v-if="Object.keys(member.quarterAvailability).length === 0" 
-            size="small" 
-            label 
-            disabled
-          >
+          <v-chip v-if="Object.keys(member.quarterAvailability).length === 0" size="small" label disabled>
             No quarters configured
           </v-chip>
         </div>
@@ -99,7 +105,7 @@
         <v-col cols="12">
           <div class="d-flex align-center">
             <v-icon icon="mdi-briefcase-outline" size="small" class="mr-1" />
-            <span class="text-grey-darken-1">Assigned:</span>
+            <span class="text-caption text--secondary">Assigned:</span>
             <span class="font-weight-bold ml-2">
               {{ member.assignedInitiatives.length }} initiatives
             </span>

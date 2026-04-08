@@ -31,6 +31,7 @@
             hide-details
             prepend-inner-icon="mdi-magnify"
             clearable
+            color="input"
           />
         </div>
 
@@ -393,7 +394,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 
 /* ═══ SIDEBAR ═══ */
 .member-sidebar {
-  width: 280px;
+  width: 320px;
   flex-shrink: 0;
   background: rgb(var(--v-theme-surface));
   border-radius: 16px;

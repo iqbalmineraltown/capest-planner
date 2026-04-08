@@ -1,18 +1,18 @@
 <template>
   <v-dialog
     :model-value="modelValue"
-    max-width="520"
+    max-width="600"
     persistent
-    @update:model-value="$emit('update:modelValue', $event)"
+    @update:modelValue="$emit('update:modelValue', $event)"
   >
-    <v-card class="assignment-dialog" rounded="xl">
+    <v-card class="assignment-dialog rounded-xl" elevation="4">
       <!-- Header -->
-      <div class="assignment-dialog__header">
+      <div class="assignment-dialog__header pa-6 d-flex align-start justify-space-between">
         <div>
-          <h3 class="assignment-dialog__title">
+          <h3 class="assignment-dialog__title text-h5">
             {{ isNew ? 'New Assignment' : 'Edit Assignment' }}
           </h3>
-          <p v-if="initiative" class="assignment-dialog__subtitle">
+          <p v-if="initiative" class="assignment-dialog__subtitle text-body-2 text--secondary">
             {{ initiative.name }}
           </p>
         </div>
@@ -23,7 +23,7 @@
 
       <v-divider />
 
-      <v-card-text class="pa-5">
+      <v-card-text class="pa-6">
         <!-- Week conflict alert -->
         <v-alert
           v-if="weekConflict.hasConflict"
@@ -36,8 +36,8 @@
           <strong>Week conflict!</strong> Member already assigned:
           <ul class="mt-1 mb-0 pl-4">
             <li v-for="c in weekConflict.conflicts" :key="c.initiativeId">
-              <strong>W{{ c.weeks.join(', ') }}</strong>: {{ c.initiativeName }}
-            </li>
+              <strong>W{{ c.weeks.join(', ') }}</strong>: {{ c.initiativeName }
+              </li>
           </ul>
         </v-alert>
 
@@ -51,7 +51,7 @@
             rounded="lg"
             :rules="[v => !!v || 'Required']"
             :disabled="!isNew"
-            class="mb-3"
+            class="mb-4"
           >
             <template #item="{ item, props: itemProps }">
               <v-list-item v-bind="itemProps">
@@ -77,7 +77,7 @@
             variant="outlined"
             rounded="lg"
             :rules="[v => !!v || 'Required']"
-            class="mb-3"
+            class="mb-4"
           />
 
           <!-- Weeks & Start week side by side -->
@@ -121,7 +121,7 @@
             density="compact"
             variant="tonal"
             rounded="lg"
-            class="mt-2"
+            class="mt-4"
           >
             <v-icon start size="16">mdi-arrow-right-bold</v-icon>
             Carries over {{ carriedWeeks }} week(s) to next quarter
@@ -168,8 +168,8 @@
 import { ref, computed, watch } from 'vue'
 import type { Initiative, Assignment, TeamMember, QuarterConfig } from '~/types'
 import { useRolesStore } from '~/stores/roles'
-import { checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
-import { getInitials } from '~/utils/colorUtils'
+import { checkCarryOver, checkWeekConflicts } from '~/ utils/capacityCalculator'
+import { getInitials } from '~/ utils/colorUtils'
 
 const props = defineProps<{
   modelValue: boolean
@@ -292,7 +292,7 @@ function handleSave() {
 
 .assignment-dialog__header {
   display: flex;
-  align-items: flex-start;
+  align-items flex-start;
   justify-content: space-between;
   padding: 20px 20px 12px;
 }

@@ -18,13 +18,24 @@
           style="min-width: 160px"
         />
         <v-btn
-          color="primary"
-          variant="flat"
+          color="secondary"
+          variant="outlined"
+          density="compact"
           rounded="lg"
-          prepend-icon="mdi-calendar-plus"
-          @click="showAddQuarterDialog = true"
+          :to="{ path: '/initiatives', query: { quarter: $route.query.quarter } }"
         >
-          Add Quarter
+          <v-icon start>mdi-plus</v-icon>
+          Add Initiative
+        </v-btn>
+        <v-btn
+          color="secondary"
+          variant="outlined"
+          density="compact"
+          rounded="lg"
+          :to="{ path: '/members', query: { quarter: $route.query.quarter } }"
+        >
+          <v-icon start>mdi-account-plus</v-icon>
+          Add Member
         </v-btn>
       </div>
     </div>
@@ -46,86 +57,6 @@
       @add-assignment="handleAddAssignment"
       @edit-member="openMemberEditDialog"
     />
-
-    <!-- Add Quarter Dialog -->
-    <v-dialog v-model="showAddQuarterDialog" max-width="400">
-      <v-card rounded="xl">
-        <v-card-title class="pt-5 px-5 font-weight-bold">Add New Quarter</v-card-title>
-        <v-card-text class="px-5">
-          <v-row>
-            <v-col cols="6">
-              <v-select
-                v-model="newQuarterYear"
-                :items="yearOptions"
-                label="Year"
-                variant="outlined"
-                density="comfortable"
-                rounded="lg"
-              />
-            </v-col>
-            <v-col cols="6">
-              <v-select
-                v-model="newQuarterNumber"
-                :items="[1, 2, 3, 4]"
-                label="Quarter"
-                variant="outlined"
-                density="comfortable"
-                rounded="lg"
-              />
-            </v-col>
-          </v-row>
-        </v-card-text>
-        <v-card-actions class="px-5 pb-4">
-          <v-spacer />
-          <v-btn variant="text" rounded="lg" @click="showAddQuarterDialog = false">Cancel</v-btn>
-          <v-btn
-            color="primary"
-            variant="flat"
-            rounded="lg"
-            :disabled="!newQuarterYear || !newQuarterNumber"
-            @click="handleAddQuarter"
-          >
-            Add
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Assignment Dialog -->
-    <AssignmentDialog
-      v-model="showAssignmentDialog"
-      :initiative="selectedInitiative"
-      :assignment="editingAssignment"
-      :members="membersStore.members"
-      :quarter="selectedQuarter"
-      :initial-member-id="initialMemberId"
-      :initial-role="initialRole"
-      :initial-start-week="initialStartWeek"
-      :all-initiatives="initiativesStore.initiatives"
-      :exclude-initiative-id="selectedInitiative?.id"
-      :exclude-assignment-index="editingAssignmentIndex"
-      @save="handleSaveAssignment"
-      @delete="handleDeleteAssignment"
-    />
-
-    <!-- Member Edit Dialog -->
-    <v-dialog v-model="showMemberDialog" max-width="600" persistent>
-      <v-card>
-        <v-card-title class="d-flex align-center">
-          <span class="text-h5">Edit Team Member</span>
-          <v-spacer />
-          <v-btn icon="mdi-close" variant="text" @click="closeMemberDialog" />
-        </v-card-title>
-
-        <v-card-text>
-          <MemberForm
-            :member-id="editingMemberId"
-            @submit="handleMemberSubmit"
-            @cancel="closeMemberDialog"
-          />
-        </v-card-text>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -192,11 +123,11 @@ watch(
 // Actions
 function handleAddQuarter() {
   const q = quartersStore.addQuarter(newQuarterYear.value, newQuarterNumber.value)
-  if (q) {
-    selectedQuarterId.value = q.id
-    toast.success(`Quarter ${q.label} added`)
-  }
-  showAddQuarterDialog.value = false
+if (q) {
+      selectedQuarterId.value = q.id
+      toast.success(`Quarter ${q.label} added`)
+    }
+    showAddQuarterDialog.value = false
 }
 
 function openAssignmentDialog(payload: { initiative: Initiative; assignmentIndex: number }) {

@@ -4,11 +4,12 @@
     :color="snackbarColor"
     :timeout="-1"
     location="bottom"
-    class="app-snackbar"
+    class="app-snackbar rounded-lg"
+    elevation="2"
   >
     <div class="d-flex align-center">
-      <v-icon :icon="snackbarIcon" class="mr-2" />
-      <span>{{ toast.message.value }}</span>
+      <v-icon :icon="snackbarIcon" class="mr-3" size="large" />
+      <span class="text-body-1">{{ toast.message.value }}</span>
     </div>
 
     <template #actions>
@@ -52,5 +53,11 @@ const snackbarColor = computed(() => colorMap[toast.type.value])
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 16px 24px;
+}
+
+.app-snackbar {
+  margin: 16px;
+  min-width: 350px;
 }
 </style>

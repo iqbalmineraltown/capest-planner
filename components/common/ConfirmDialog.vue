@@ -1,19 +1,19 @@
 <template>
   <!-- This is a global confirm dialog managed via provide/inject -->
   <v-dialog v-model="isOpen" max-width="500" persistent>
-    <v-card v-if="config">
-      <v-card-title class="text-h6">
+    <v-card v-if="config" class="rounded-xl" elevation="4">
+      <v-card-title class="text-h5 py-4">
         <v-icon v-if="config.icon" :color="config.iconColor" class="mr-2">
           {{ config.icon }}
         </v-icon>
         {{ config.title }}
       </v-card-title>
 
-      <v-card-text>
+      <v-card-text class="py-4">
         {{ config.message }}
       </v-card-text>
 
-      <v-card-actions>
+      <v-card-actions class="pa-4">
         <v-spacer />
         <v-btn variant="text" @click="handleCancel">
           {{ config.cancelText || 'Cancel' }}

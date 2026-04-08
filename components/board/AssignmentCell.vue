@@ -149,4 +149,93 @@ const initials = computed(() => {
 .assignment-card--conflict {
   border: 2px solid #FFC107;
 }
+
+/* Accent bar on left */
+.assignment-card__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+}
+
+.assignment-card__body {
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.assignment-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assignment-card__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.assignment-card__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.assignment-card__name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.87);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.assignment-card__role {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.assignment-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assignment-card__weeks {
+  font-size: 0.7rem;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-weight: 500;
+}
+
+.assignment-card__carryover-icon {
+  animation: pulse-carry 1.5s ease-in-out infinite;
+}
+
+.assignment-card__conflict-icon {
+  animation: pulse-conflict 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-carry {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes pulse-conflict {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
 </style>
