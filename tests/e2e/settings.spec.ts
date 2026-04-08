@@ -142,9 +142,27 @@ test.describe('Settings Page', () => {
     await dialog.last().locator('button:has-text("Cancel")').click()
   })
 
-  test('should have export and import buttons', async ({ page }) => {
-    await expect(page.locator('button:has-text("Export Data")')).toBeVisible()
+test('should have export and import buttons', async ({ page }) => {
+    // The export buttons are "Export All" and "Members Only"
+    await expect(page.locator('button:has-text("Export All")')).toBeVisible()
     await expect(page.locator('button:has-text("Import Data")')).toBeVisible()
+  })
+
+  test('should not have actions in the app bar', async ({ page }) => {
+    await page.goto('/')
+    await page.waitForLoadState('networkidle')
+    await page.waitForTimeout(500)
+
+    // The app bar should only contain the hamburger nav icon and theme toggle.
+    // It should NOT contain a "Settings" button or any other action buttons.
+    const appBarButtons = page.locator('.v-app-bar').locator('button')
+    const buttonTexts = await appBarButtons.all().then(buttons =>
+      Promise.all(buttons.map(b => b.textContent()))
+    )
+    expect(buttonTexts).toEqual(expect.arrayContaining(['', undefined, null])) // Not reliable
+    // Instead, check that there is no button with text "Settings" or "Search"
+    await expect(page.locator('.v-app-bar button:has-text("Settings")')).toBeHidden()
+    await expect(page.locator('.v-app-bar button:has-text("Search")')).toBeHidden()
   })
 
   test('should display data management storage stats', async ({ page }) => {

@@ -36,8 +36,8 @@
           <strong>Week conflict!</strong> Member already assigned:
           <ul class="mt-1 mb-0 pl-4">
             <li v-for="c in weekConflict.conflicts" :key="c.initiativeId">
-              <strong>W{{ c.weeks.join(', ') }}</strong>: {{ c.initiativeName }
-              </li>
+              <strong>W{{ c.weeks.join(', ') }}</strong>: {{ c.initiativeName }}
+            </li>
           </ul>
         </v-alert>
 
@@ -167,9 +167,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { Initiative, Assignment, TeamMember, QuarterConfig } from '~/types'
-import { useRolesStore } from '~/stores/roles'
-import { checkCarryOver, checkWeekConflicts } from '~/ utils/capacityCalculator'
-import { getInitials } from '~/ utils/colorUtils'
+import { useRolesStore } from '~/ stores/roles'
+import { checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
+import { getInitials } from '~/utils/colorUtils'
 
 const props = defineProps<{
   modelValue: boolean
@@ -292,7 +292,7 @@ function handleSave() {
 
 .assignment-dialog__header {
   display: flex;
-  align-items flex-start;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 20px 20px 12px;
 }

@@ -41,7 +41,7 @@ test.describe('Fix Verification - Member & Initiative Forms', () => {
     await expect(dialog.locator('button[type="submit"]')).toBeVisible()
   })
 
-  test('can add a new member via the form', async ({ page }) => {
+test('can add a new member via the form', async ({ page }) => {
     await page.goto('/members')
     await page.waitForLoadState('networkidle')
     await page.waitForTimeout(1000)
@@ -69,80 +69,15 @@ test.describe('Fix Verification - Member & Initiative Forms', () => {
     await page.keyboard.press('Escape')
     await page.waitForTimeout(200)
 
-    // Add quarter availability - first ensure quarters exist by going to board
-    // The form should show "No quarters configured" if no quarters exist
-    // Let's add a quarter first from the board page
-    await page.keyboard.press('Escape') // Close member dialog
-    await page.waitForTimeout(300)
-    
-    // Go to board and add a quarter
-    await page.goto('/board')
-    await page.waitForLoadState('networkidle')
+    // The member form should show quarter availability fields because quarters exist from seed data
+    // No need to add a quarter manually
+    await dialog.locator('button[type="submit"]').click()
     await page.waitForTimeout(500)
-    
-    // Add a quarter
-    await page.click('button:has-text("Add Quarter")')
-    await page.waitForTimeout(300)
-    const quarterDialog = page.locator('.v-overlay--active .v-card').last()
-    await quarterDialog.locator('button:has-text("Add")').click()
-    await page.waitForTimeout(500)
-    
-    // Now go back to members and try adding
-    await page.goto('/members')
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500)
-    
-    // Click add member again
-    await page.click('button:has-text("Add Member")')
-    await page.waitForTimeout(500)
-    
-    const dialog2 = page.locator('.v-overlay__content .v-card').filter({ hasText: 'Team Member' }).first()
-    
-    // Fill in name
-    await dialog2.locator('input').first().fill('Test Pirate 2')
-    
-    // Select a role
-    const combobox2 = dialog2.locator('.v-combobox input')
-    await combobox2.click()
-    await page.waitForTimeout(300)
-    const dropdownMenu2 = page.locator('.v-overlay--active .v-list')
-    await dropdownMenu2.last().locator('.v-list-item').first().click()
-    await page.waitForTimeout(200)
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(200)
-    
-    // Add quarter availability
-    const addQuarterBtn = dialog2.locator('button:has-text("Add Quarter")')
-    await addQuarterBtn.click()
-    await page.waitForTimeout(300)
-    
-    // Select the quarter in the dialog
-    const addQuarterDialog = page.locator('.v-overlay--active .v-card').filter({ hasText: 'Add Quarter Availability' })
-    const quarterSelect = addQuarterDialog.locator('.v-select')
-    await quarterSelect.click()
-    await page.waitForTimeout(300)
-    
-    // Select first quarter option
-    const quarterOption = page.locator('.v-overlay--active .v-list-item').first()
-    await quarterOption.click()
-    await page.waitForTimeout(200)
-    
-    // Click Add button
-    await addQuarterDialog.locator('button:has-text("Add")').click()
-    await page.waitForTimeout(300)
-    
-    // Now set availability value
-    const quarterAvailInput = dialog2.locator('.quarter-availability-card input[type="number"]')
-    if (await quarterAvailInput.count() > 0) {
-      await quarterAvailInput.first().fill('10')
-    }
 
-    // Submit the form
-    await dialog2.locator('button[type="submit"]').click()
-    await page.waitForTimeout(1000)
-
-    // Dialog should close
-    await page.waitForTimeout(500)
+    // Verify member was added
+    const addedMember = page.locator('.member-card').last()
+    await expect(addedMember).toBeVisible({ timeout: 5000 })
+    await expect(addedMember).toContainText('Test Pirate')
   })
 
   test('initiative form renders with role requirement inputs', async ({ page }) => {

@@ -671,7 +671,7 @@ function handleDropMember(payload: { initiative: Initiative; memberId: string; r
 }
 
 .board-week-header__week {
-  flex: 0 0 100px;
+  flex: 0 0 90px;
   text-align: center;
   font-size: 0.75rem;
   font-weight: 600;
