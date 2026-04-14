@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Initiative, QuarterConfig, Assignment, QuarterCapacitySummary } from '~/types'
+import type { Initiative, Assignment, QuarterCapacitySummary } from '~/types'
 import { useQuartersStore } from '~/stores/quarters'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useMembersStore } from '~/stores/members'

@@ -49,8 +49,8 @@ export function parseQuarterId(quarterId: string): { year: number; quarter: numb
   const match = quarterId.match(/^Q([1-4])-(\d{4})$/)
   if (!match) return null
   return {
-    quarter: parseInt(match[1], 10),
-    year: parseInt(match[2], 10),
+    quarter: Number.parseInt(match[1], 10),
+    year: Number.parseInt(match[2], 10),
   }
 }
 

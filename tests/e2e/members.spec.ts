@@ -15,7 +15,7 @@ test.describe('Members Page', () => {
 
     // Check for member count in stats - this should be > 0 if seed data loaded
     const memberCount = await page.locator('.v-card--variant-tonal').first().locator('.text-h4').textContent()
-    expect(parseInt(memberCount || '0')).toBeGreaterThan(0)
+    expect(Number.parseInt(memberCount || '0')).toBeGreaterThan(0)
   })
 
   test('should open add member dialog', async ({ page }) => {
@@ -43,7 +43,7 @@ test.describe('Members Page', () => {
     const statsCard = page.locator('.v-card--variant-tonal').first()
     const countEl = statsCard.locator('.text-h4')
     const count = await countEl.textContent()
-    const numMembers = parseInt(count || '0')
+    const numMembers = Number.parseInt(count || '0')
 
     // If we have members, verify the page loaded properly
     if (numMembers > 0) {

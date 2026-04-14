@@ -14,13 +14,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "types": [
+      "nuxt",
       "vitest/globals"
     ]
   },
   "exclude": [
     "node_modules",
     "dist",
-    ".nuxt",
     ".playwright"
   ]
 }

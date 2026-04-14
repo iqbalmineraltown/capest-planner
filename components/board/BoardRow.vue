@@ -155,7 +155,7 @@ const emit = defineEmits<{
 
 const {
   dragState,
-  dropTarget,
+  dropTarget: _dropTarget,
   isDragging,
   startAssignmentDrag,
   setDropTarget,

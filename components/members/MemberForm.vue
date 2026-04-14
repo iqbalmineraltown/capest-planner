@@ -305,7 +305,8 @@ function removeQuarterAvailability(quarterId: string) {
 
 // Handle form submission
 async function handleSubmit() {
-  const { valid } = await formRef.value?.validate()
+  const validationResult = await formRef.value?.validate()
+  const valid = validationResult?.valid ?? false
 
   if (!valid) {
     return

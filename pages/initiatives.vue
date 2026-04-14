@@ -121,8 +121,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import type { Initiative, QuarterConfig } from '~/types'
+import { ref, computed } from 'vue'
+import type { Initiative } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import InitiativeList from '~/components/initiatives/InitiativeList.vue'

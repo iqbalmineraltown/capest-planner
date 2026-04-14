@@ -124,7 +124,7 @@ const props = withDefaults(defineProps<Props>(), {
   readonly: false
 })
 
-const emit = defineEmits<Emits>()
+const _emit = defineEmits<Emits>()
 
 const initiativesStore = useInitiativesStore()
 const quartersStore = useQuartersStore()

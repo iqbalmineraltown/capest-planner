@@ -353,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useMembersStore } from '~/stores/members'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'

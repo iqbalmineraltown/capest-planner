@@ -1,8 +1,5 @@
 import { computed, type ComputedRef } from 'vue'
 import type {
-  TeamMember,
-  Initiative,
-  QuarterConfig,
   MemberCapacity,
   QuarterCapacitySummary,
   RoleType,

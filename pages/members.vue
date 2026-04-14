@@ -295,7 +295,7 @@ function closeDialog() {
 }
 
 // Handle member form submission
-function handleMemberSubmit(member: TeamMember) {
+function handleMemberSubmit(_member: TeamMember) {
   const isEdit = !!editingMemberId.value
   dialogOpen.value = false
   editingMemberId.value = null

@@ -101,7 +101,7 @@ function updateRole(role: string) {
 }
 
 function updateEffort(effort: number | string) {
-  const numEffort = typeof effort === 'string' ? parseInt(effort) || 0 : effort
+  const numEffort = typeof effort === 'string' ? Number.parseInt(effort) || 0 : effort
   emit('update', { role: props.requirement.role, effort: Math.max(0, numEffort) })
 }
 

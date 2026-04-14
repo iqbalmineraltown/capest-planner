@@ -19,10 +19,7 @@ export default defineNuxtConfig({
     '~/assets/styles/main.scss',
   ],
 
-  modules: [
-    '@pinia/nuxt',
-    'vuetify-nuxt-module',
-  ],
+  modules: ['@pinia/nuxt', 'vuetify-nuxt-module', '@nuxt/eslint'],
 
   components: [
     { path: '~/components', pathPrefix: false },

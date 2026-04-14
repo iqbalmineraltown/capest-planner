@@ -167,8 +167,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import type { Initiative, Assignment, TeamMember, QuarterConfig } from '~/types'
-import { useRolesStore } from '~/ stores/roles'
-import { checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
+import { useRolesStore } from '~/stores/roles'
+import { checkCarryOver as _checkCarryOver, checkWeekConflicts } from '~/utils/capacityCalculator'
 import { getInitials } from '~/utils/colorUtils'
 
 const props = defineProps<{

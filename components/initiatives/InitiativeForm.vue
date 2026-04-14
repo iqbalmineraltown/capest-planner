@@ -169,7 +169,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { Initiative, RoleRequirement, QuarterConfig } from '~/types'
+import type { Initiative, RoleRequirement } from '~/types'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
 import { useRolesStore } from '~/stores/roles'

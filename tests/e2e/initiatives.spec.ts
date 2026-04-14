@@ -13,7 +13,7 @@ test.describe('Initiatives Page', () => {
 
     // Check for initiative count in the page header
     const countText = await page.locator('text=/\\d+ initiative/').textContent()
-    const count = parseInt(countText?.match(/\d+/)?.[0] || '0')
+    const count = Number.parseInt(countText?.match(/\d+/)?.[0] || '0')
     expect(count).toBeGreaterThan(0)
   })
 
@@ -40,9 +40,7 @@ test.describe('Initiatives Page', () => {
 
     // Check for initiative count first
     const countText = await page.locator('text=/\\d+ initiative/').textContent()
-    const count = parseInt(countText?.match(/\d+/)?.[0] || '0')
-
-    // If we have initiatives, verify the page shows expected elements
+    const count = Number.parseInt(countText?.match(/\d+/)?.[0] || '0')
     if (count > 0) {
       // The page should have Vuetify chips (for quarter display, roles, etc.)
       const chips = await page.locator('.v-chip').count()

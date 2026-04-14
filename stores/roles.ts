@@ -109,7 +109,8 @@ export const useRolesStore = defineStore('roles', () => {
     const index = roles.value.indexOf(role)
     if (index > -1 && !DEFAULT_ROLES.includes(role)) {
       roles.value.splice(index, 1)
-      delete roleColors.value[role]
+      const { [role]: _, ...remainingColors } = roleColors.value
+      roleColors.value = remainingColors
     }
   }
 
@@ -124,8 +125,8 @@ export const useRolesStore = defineStore('roles', () => {
     // Preserve color
     const color = roleColors.value[oldName]
     roles.value.splice(index, 1, normalized)
-    delete roleColors.value[oldName]
-    roleColors.value[normalized] = color
+    const { [oldName]: _, ...remainingColors } = roleColors.value
+    roleColors.value = { ...remainingColors, [normalized]: color }
 
     return true
   }

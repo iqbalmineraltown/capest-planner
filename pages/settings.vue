@@ -609,6 +609,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRuntimeConfig } from '#imports'
 import { useMembersStore } from '~/stores/members'
 import { useInitiativesStore } from '~/stores/initiatives'
 import { useQuartersStore } from '~/stores/quarters'
@@ -675,13 +676,6 @@ function addNewRole() {
 function confirmRemoveRole(role: string) {
   roleToRemove.value = role
   showRemoveRoleDialog.value = true
-}
-
-function onRoleChipClick(event: Event, role: string) {
-  // Don't open edit dialog if the close button was clicked
-  const target = event.target as HTMLElement
-  if (target.closest('.v-chip__close')) return
-  openEditRole(role)
 }
 
 function executeRemoveRole() {

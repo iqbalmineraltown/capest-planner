@@ -43,7 +43,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { TeamMember } from '~/types'
 import MemberCard from './MemberCard.vue'
 
@@ -53,7 +52,7 @@ interface Props {
   editMode?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
+const _props = withDefaults(defineProps<Props>(), {
   loading: false,
   editMode: true,
 })
